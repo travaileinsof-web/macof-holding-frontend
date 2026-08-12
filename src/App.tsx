@@ -122,6 +122,7 @@ function AnimatedRoutes() {
 }
 
 import { useRealtimeSync } from './hooks/useRealtimeSync';
+import NotFound from './components/NotFound';
 
 function App() {
   useRealtimeSync();
@@ -179,7 +180,7 @@ function App() {
 
         {/* Public routes with shared layout */}
         <Route element={<PublicLayout />}>
-          <Route path="*" element={<AnimatedRoutes />} />
+          <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>}  />
         </Route>
       </Routes>
     </BrowserRouter>
