@@ -9,12 +9,10 @@ import {
   AlertCircle,
   Eye,
   EyeOff,
-  MapPin,
-  Share2,
-  Globe
+  Globe,
 } from 'lucide-react';
-import { api } from '../../lib/api';
-import { AdminPage } from '../../components/ui/AdminPage';
+import { AdminPage } from '@/components/ui/AdminPage';
+import { useSettings } from '@/hooks/useSettings';
 
 interface SettingsData {
   smtp_host: string;
@@ -34,9 +32,8 @@ interface SettingsData {
 const maskedPassword = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
 
 export default function Settings() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [sendingTest, setSendingTest] = useState<'email' | 'whatsapp' | null>(null);
+  const { settings, loading, saving, testingSmtp, saveSettings, testSmtp } = useSettings();
+
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
@@ -58,6 +55,7 @@ export default function Settings() {
 
   const originalPasswordRef = useRef('');
 
+  // Auto-fermeture des notifications après 4 sec
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => setNotification(null), 4000);
@@ -65,40 +63,28 @@ export default function Settings() {
     }
   }, [notification]);
 
-  const fetchSettings = async (silent = false) => {
-    if (!silent) setLoading(true);
-    try {
-      const res = await api.get('/api/v1/admin/settings');
-      if (res.data.success && res.data.data) {
-        const map = res.data.data.map || {};
-        const originalPwd = map.smtp_password || '';
-        originalPasswordRef.current = originalPwd;
-        setForm({
-          smtp_host: map.smtp_host || '',
-          smtp_port: parseInt(map.smtp_port, 10) || 587,
-          smtp_email: map.smtp_email || '',
-          smtp_password: originalPwd ? maskedPassword : '',
-          whatsapp_number: map.whatsapp_number || '',
-          contact_email: map.contact_email || '',
-          contact_phone: map.contact_phone || '',
-          contact_address: map.contact_address || '',
-          social_facebook: map.social_facebook || '',
-          social_linkedin: map.social_linkedin || '',
-          social_instagram: map.social_instagram || '',
-          social_twitter: map.social_twitter || '',
-        });
-        setPasswordChanged(false);
-      }
-    } catch (err) {
-      console.error('Erreur fetch settings:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Synchroniser le formulaire quand les réglages sont récupérés depuis le hook
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (settings) {
+      const originalPwd = settings.smtp_password || '';
+      originalPasswordRef.current = originalPwd;
+      setForm({
+        smtp_host: settings.smtp_host || '',
+        smtp_port: parseInt(settings.smtp_port || '587', 10) || 587,
+        smtp_email: settings.smtp_email || '',
+        smtp_password: originalPwd ? maskedPassword : '',
+        whatsapp_number: settings.whatsapp_number || '',
+        contact_email: settings.contact_email || '',
+        contact_phone: settings.contact_phone || '',
+        contact_address: settings.contact_address || '',
+        social_facebook: settings.social_facebook || '',
+        social_linkedin: settings.social_linkedin || '',
+        social_instagram: settings.social_instagram || '',
+        social_twitter: settings.social_twitter || '',
+      });
+      setPasswordChanged(false);
+    }
+  }, [settings]);
 
   const updateForm = (key: keyof SettingsData, value: string | number) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -114,60 +100,53 @@ export default function Settings() {
   };
 
   const handleSave = async () => {
-    setSaving(true);
-    try {
-      const settings: Record<string, string> = {
-        smtp_host: form.smtp_host,
-        smtp_port: String(form.smtp_port),
-        smtp_email: form.smtp_email,
-        whatsapp_number: form.whatsapp_number,
-        contact_email: form.contact_email,
-        contact_phone: form.contact_phone,
-        contact_address: form.contact_address,
-        social_facebook: form.social_facebook,
-        social_linkedin: form.social_linkedin,
-        social_instagram: form.social_instagram,
-        social_twitter: form.social_twitter,
-      };
-      
-      const pwd = getPasswordValue();
-      if (pwd) {
-        settings.smtp_password = pwd;
-      }
+    const payload: Record<string, string> = {
+      smtp_host: form.smtp_host,
+      smtp_port: String(form.smtp_port),
+      smtp_email: form.smtp_email,
+      whatsapp_number: form.whatsapp_number,
+      contact_email: form.contact_email,
+      contact_phone: form.contact_phone,
+      contact_address: form.contact_address,
+      social_facebook: form.social_facebook,
+      social_linkedin: form.social_linkedin,
+      social_instagram: form.social_instagram,
+      social_twitter: form.social_twitter,
+    };
 
-      await api.post('/api/v1/admin/settings/bulk', { settings });
-      setNotification({ type: 'success', message: 'Parametres sauvegardes avec succes.' });
-      fetchSettings(true); // silent refresh — no loading spinner
-    } catch (err) {
-      console.error('Erreur sauvegarde:', err);
-      setNotification({ type: 'error', message: 'Erreur lors de la sauvegarde.' });
-    } finally {
-      setSaving(false);
+    const pwd = getPasswordValue();
+    if (pwd) {
+      payload.smtp_password = pwd;
+    }
+
+    const res = await saveSettings(payload);
+    if (res.success) {
+      setNotification({ type: 'success', message: res.message });
+      setPasswordChanged(false);
+    } else {
+      setNotification({ type: 'error', message: res.message });
     }
   };
 
   const handleTestEmail = async () => {
-    setSendingTest('email');
-    try {
-      await api.post('/api/v1/admin/settings/test-email');
-      setNotification({ type: 'success', message: 'Email de test envoye avec succes.' });
-    } catch (err: any) {
-      const msg = err.response?.data?.message || 'Erreur lors de l\'envoi de l\'email de test.';
-      setNotification({ type: 'error', message: msg });
-    } finally {
-      setSendingTest(null);
+    if (!form.contact_email) {
+      setNotification({ type: 'error', message: 'Veuillez renseigner un e-mail public pour recevoir le test.' });
+      return;
+    }
+    const res = await testSmtp(form.contact_email);
+    if (res.success) {
+      setNotification({ type: 'success', message: res.message });
+    } else {
+      setNotification({ type: 'error', message: res.message });
     }
   };
 
   const handleTestWhatsApp = () => {
-    setSendingTest('whatsapp');
     const number = (form.whatsapp_number || '').replace(/\s/g, '');
-    const message = encodeURIComponent('Test depuis le panel d\'administration MACOF.');
+    const message = encodeURIComponent("Test depuis le panel d'administration MACOF.");
     const url = `https://wa.me/${number}?text=${message}`;
     window.open(url, '_blank');
-    setSendingTest(null);
   };
-
 
   return (
     <AdminPage loading={loading} className="max-w-4xl space-y-6">
@@ -192,10 +171,10 @@ export default function Settings() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-200">Parametres generaux</h2>
-          <p className="text-slate-400 text-sm mt-1">Configuration des contacts, SMTP, et reseaux sociaux.</p>
+          <h2 className="text-2xl font-bold text-slate-200">Paramètres généraux</h2>
+          <p className="text-slate-400 text-sm mt-1">Configuration des contacts, SMTP, et réseaux sociaux.</p>
         </div>
-        
+
         {/* Save Button */}
         <button
           type="button"
@@ -215,7 +194,6 @@ export default function Settings() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* Colonne 1: Infos publiques */}
         <div className="space-y-6">
           {/* Contacts Publics */}
@@ -238,7 +216,7 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Telephone public</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Téléphone public</label>
                 <input
                   type="text"
                   value={form.contact_phone}
@@ -248,17 +226,17 @@ export default function Settings() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Adresse complete</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Adresse complète</label>
                 <textarea
                   rows={2}
                   value={form.contact_address}
                   onChange={(e) => updateForm('contact_address', e.target.value)}
-                  placeholder="Kipe, Commune de Ratoma, Conakry, Guinee"
+                  placeholder="Kipé, Commune de Ratoma, Conakry, Guinée"
                   className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-amber-500 transition-colors resize-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Numero WhatsApp (Bouton flottant)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Numéro WhatsApp (Bouton flottant)</label>
                 <input
                   type="text"
                   value={form.whatsapp_number}
@@ -270,12 +248,12 @@ export default function Settings() {
             </div>
           </div>
 
-          {/* Reseaux Sociaux */}
+          {/* Réseaux Sociaux */}
           <div className="bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden">
             <div className="px-5 py-3 bg-slate-800/50 border-b border-slate-700">
               <div className="flex items-center gap-2">
                 <Globe className="h-4 w-4 text-slate-400" />
-                <h3 className="text-sm font-semibold text-slate-200">Reseaux Sociaux</h3>
+                <h3 className="text-sm font-semibold text-slate-200">Réseaux Sociaux</h3>
               </div>
             </div>
             <div className="px-5 py-5 space-y-4">
@@ -343,7 +321,7 @@ export default function Settings() {
             </div>
             <div className="px-5 py-5 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Hote SMTP</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Hôte SMTP</label>
                 <input
                   type="text"
                   value={form.smtp_host}
@@ -366,7 +344,7 @@ export default function Settings() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">Email expediteur (Identifiant)</label>
+                <label className="block text-sm font-medium text-slate-300 mb-1">Email expéditeur (Identifiant)</label>
                 <input
                   type="email"
                   value={form.smtp_email}
@@ -396,7 +374,7 @@ export default function Settings() {
                 </div>
                 {!passwordChanged && form.smtp_password && (
                   <p className="text-xs text-slate-500 mt-1">
-                    Mot de passe masque. Modifiez le champ pour le mettre a jour.
+                    Mot de passe masqué. Modifiez le champ pour le mettre à jour.
                   </p>
                 )}
               </div>
@@ -408,7 +386,7 @@ export default function Settings() {
             <div className="px-5 py-3 bg-slate-800/50 border-b border-slate-700">
               <div className="flex items-center gap-2">
                 <Send className="h-4 w-4 text-slate-400" />
-                <h3 className="text-sm font-semibold text-slate-200">Tests systeme</h3>
+                <h3 className="text-sm font-semibold text-slate-200">Tests système</h3>
               </div>
             </div>
             <div className="px-5 py-5 space-y-4">
@@ -419,15 +397,15 @@ export default function Settings() {
                     e.preventDefault();
                     handleTestEmail();
                   }}
-                  disabled={sendingTest === 'email'}
+                  disabled={testingSmtp}
                   className="flex-1 inline-flex justify-center items-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors border border-slate-600"
                 >
-                  {sendingTest === 'email' ? (
+                  {testingSmtp ? (
                     <RefreshCw className="h-4 w-4 animate-spin" />
                   ) : (
                     <Mail className="h-4 w-4" />
                   )}
-                  {sendingTest === 'email' ? 'Envoi...' : 'Tester SMTP'}
+                  {testingSmtp ? 'Envoi...' : 'Tester SMTP'}
                 </button>
                 <button
                   type="button"
@@ -435,7 +413,7 @@ export default function Settings() {
                     e.preventDefault();
                     handleTestWhatsApp();
                   }}
-                  disabled={sendingTest === 'whatsapp' || !form.whatsapp_number}
+                  disabled={!form.whatsapp_number}
                   className="flex-1 inline-flex justify-center items-center gap-2 bg-green-600/20 hover:bg-green-600/30 text-green-500 border border-green-500/30 disabled:opacity-50 disabled:cursor-not-allowed px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                 >
                   <Phone className="h-4 w-4" />
@@ -444,7 +422,6 @@ export default function Settings() {
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </AdminPage>

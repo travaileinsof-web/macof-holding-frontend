@@ -193,7 +193,7 @@ export default function FilialesManager() {
   };
 
   const handleDelete = (id: number) => {
-    if (!confirm('Supprimer cette filiale ?')) return;
+    if (!confirm('Archiver cette filiale ? Elle ne sera plus visible mais pourra être restaurée en base si besoin.')) return;
     deleteMutation.mutate(id);
   };
 

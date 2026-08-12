@@ -67,7 +67,7 @@ export default function PagesEditor() {
   const imageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const previewUrlsRef = useRef<string[]>([]);
 
-  // Nettoyage des URL de prévisualisation d'images (évite les fuites mémoires)
+  // Nettoyage des URL de prévisualisation locales d'images
   useEffect(() => {
     return () => {
       previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
@@ -135,7 +135,7 @@ export default function PagesEditor() {
       const section = pageData.sections?.find((s) => s.key === key);
       if (!section) return;
 
-      // Validation basique JSON avant envoi
+      // Validation JSON
       if (section.type === 'json' && section.value) {
         try {
           JSON.parse(section.value);
@@ -153,14 +153,33 @@ export default function PagesEditor() {
         formData.append('image', imageFile);
       }
 
-      await api.post(`/api/v1/admin/pages/${selectedPage}`, formData);
-      setNotification({ type: 'success', message: `Section "${toReadableLabel(key)}" sauvegardée.` });
+      const res = await api.post(`/api/v1/admin/pages/${selectedPage}`, formData);
       
-      // Rafraîchissement silencieux
-      await fetchPage(selectedPage, true);
-    } catch (err) {
+      if (res.data?.success && res.data.data) {
+        const updated = res.data.data;
+        // Mise à jour ciblée du state avec l'URL finale renvoyée par le backend (Vercel Blob / Storage local)
+        setPageData((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            sections: prev.sections.map((s) =>
+              s.key === key
+                ? {
+                    ...s,
+                    value: updated.value,
+                    image_url: updated.image_url || s.image_url,
+                  }
+                : s
+            ),
+          };
+        });
+      }
+
+      setNotification({ type: 'success', message: `Section "${toReadableLabel(key)}" sauvegardée.` });
+    } catch (err: any) {
       console.error('Erreur sauvegarde:', err);
-      setNotification({ type: 'error', message: `Erreur lors de la sauvegarde.` });
+      const msg = err.response?.data?.message || `Erreur lors de la sauvegarde.`;
+      setNotification({ type: 'error', message: msg });
     } finally {
       setSavingKey(null);
     }
@@ -169,6 +188,7 @@ export default function PagesEditor() {
   const handleImageUpload = (key: string, file: File) => {
     if (!pageData) return;
     
+    // Aperçu local temporaire
     const url = URL.createObjectURL(file);
     previewUrlsRef.current.push(url);
 
@@ -179,6 +199,7 @@ export default function PagesEditor() {
       ),
     });
     
+    // Téléversement direct
     saveSection(key, file);
   };
 
@@ -237,7 +258,7 @@ export default function PagesEditor() {
                 const file = e.target.files?.[0];
                 if (file) {
                   handleImageUpload(section.key, file);
-                  e.target.value = ''; // Permet d'uploader le même fichier une 2ème fois si nécessaire
+                  e.target.value = '';
                 }
               }}
               className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer"
