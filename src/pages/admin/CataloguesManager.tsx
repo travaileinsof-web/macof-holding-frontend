@@ -140,7 +140,7 @@ export default function CataloguesManager() {
     try {
       const formData = new FormData();
       formData.append('titre', formTitre);
-      if (formFilialeId) formData.append('filiale_id', formFilialeId);
+      if (formFilialeId) formData.append('filiale', formFilialeId);
       formData.append('type_document', formType);
       if (formFile) formData.append('file', formFile);
 

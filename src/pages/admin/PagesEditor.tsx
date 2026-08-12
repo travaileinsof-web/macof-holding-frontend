@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   RefreshCw,
   Save,
-  Upload,
-  Image as ImageIcon,
+  ImageIcon,
   FileText,
   FileCode,
   CheckCircle,
@@ -27,7 +26,7 @@ interface PageData {
 
 const pages: Array<{ label: string; slug: string }> = [
   { label: 'Accueil', slug: 'home' },
-  { label: 'A propos', slug: 'about' },
+  { label: 'À propos', slug: 'about' },
   { label: 'Immobilier', slug: 'immobilier' },
   { label: 'Restauration', slug: 'restauration' },
   { label: 'Transit', slug: 'transit' },
@@ -64,8 +63,18 @@ export default function PagesEditor() {
   const [loading, setLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  
   const imageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const previewUrlsRef = useRef<string[]>([]);
 
+  // Nettoyage des URL de prévisualisation d'images (évite les fuites mémoires)
+  useEffect(() => {
+    return () => {
+      previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
+  // Timer de notification
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => setNotification(null), 3000);
@@ -73,17 +82,18 @@ export default function PagesEditor() {
     }
   }, [notification]);
 
-  const fetchPage = async (silent = false) => {
+  const fetchPage = useCallback(async (slug: string, silent = false) => {
     if (!silent) setLoading(true);
     try {
-      const res = await api.get(`/api/v1/admin/pages/${selectedPage}`);
-      if (res.data.success) {
+      const res = await api.get(`/api/v1/admin/pages/${slug}`);
+      if (res.data?.success) {
         setPageData(res.data.data || null);
       } else {
         setPageData(null);
       }
-    } catch (err: any) {
-      if (err.response?.status === 404) {
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number } };
+      if (error.response?.status === 404) {
         setPageData(null);
       } else {
         console.error('Erreur fetch page:', err);
@@ -91,12 +101,23 @@ export default function PagesEditor() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    fetchPage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedPage]);
+    let canceled = false;
+
+    const load = async () => {
+      if (!canceled) {
+        await fetchPage(selectedPage);
+      }
+    };
+
+    load();
+
+    return () => {
+      canceled = true;
+    };
+  }, [selectedPage, fetchPage]);
 
   const updateSectionValue = (key: string, value: string) => {
     if (!pageData) return;
@@ -104,20 +125,6 @@ export default function PagesEditor() {
       ...pageData,
       sections: pageData.sections?.map((s) => (s.key === key ? { ...s, value } : s)),
     });
-  };
-
-  const handleImageUpload = (key: string, file: File) => {
-    if (!pageData) return;
-    // Show preview immediately
-    const url = URL.createObjectURL(file);
-    setPageData({
-      ...pageData,
-      sections: pageData.sections?.map((s) =>
-        s.key === key ? { ...s, value: s.value, image_url: url } : s
-      ),
-    });
-    // Then upload
-    saveSection(key, file);
   };
 
   const saveSection = async (key: string, imageFile?: File) => {
@@ -128,21 +135,60 @@ export default function PagesEditor() {
       const section = pageData.sections?.find((s) => s.key === key);
       if (!section) return;
 
+      // Validation basique JSON avant envoi
+      if (section.type === 'json' && section.value) {
+        try {
+          JSON.parse(section.value);
+        } catch {
+          setNotification({ type: 'error', message: `Format JSON invalide dans "${toReadableLabel(key)}".` });
+          setSavingKey(null);
+          return;
+        }
+      }
+
       const formData = new FormData();
       formData.append('key', key);
-      formData.append('value', section.value);
+      formData.append('value', section.value || '');
       if (imageFile) {
         formData.append('image', imageFile);
       }
 
       await api.post(`/api/v1/admin/pages/${selectedPage}`, formData);
       setNotification({ type: 'success', message: `Section "${toReadableLabel(key)}" sauvegardée.` });
-      fetchPage(true); // Refresh to get the real image URL from server (silent)
+      
+      // Rafraîchissement silencieux
+      await fetchPage(selectedPage, true);
     } catch (err) {
       console.error('Erreur sauvegarde:', err);
       setNotification({ type: 'error', message: `Erreur lors de la sauvegarde.` });
     } finally {
       setSavingKey(null);
+    }
+  };
+
+  const handleImageUpload = (key: string, file: File) => {
+    if (!pageData) return;
+    
+    const url = URL.createObjectURL(file);
+    previewUrlsRef.current.push(url);
+
+    setPageData({
+      ...pageData,
+      sections: pageData.sections?.map((s) =>
+        s.key === key ? { ...s, image_url: url } : s
+      ),
+    });
+    
+    saveSection(key, file);
+  };
+
+  const isJsonValid = (str: string) => {
+    if (!str) return true;
+    try {
+      JSON.parse(str);
+      return true;
+    } catch {
+      return false;
     }
   };
 
@@ -173,11 +219,11 @@ export default function PagesEditor() {
         return (
           <div className="space-y-3">
             {section.image_url && (
-              <div className="rounded-lg overflow-hidden border border-slate-700">
+              <div className="rounded-lg overflow-hidden border border-slate-700 max-w-md">
                 <img
                   src={section.image_url}
                   alt={section.key}
-                  className="max-h-48 object-cover"
+                  className="max-h-48 object-cover w-full"
                 />
               </div>
             )}
@@ -189,31 +235,43 @@ export default function PagesEditor() {
               accept="image/*"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) handleImageUpload(section.key, file);
+                if (file) {
+                  handleImageUpload(section.key, file);
+                  e.target.value = ''; // Permet d'uploader le même fichier une 2ème fois si nécessaire
+                }
               }}
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-600 file:text-white hover:file:bg-amber-500"
+              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-600 file:text-white hover:file:bg-amber-500 cursor-pointer"
             />
           </div>
         );
-      case 'json':
+      case 'json': {
+        const valid = isJsonValid(section.value);
         return (
           <div>
-            <p className="text-xs text-slate-500 mb-1">Format JSON valide (tableau ou objet)</p>
+            <div className="flex justify-between items-center mb-1">
+              <p className="text-xs text-slate-500">Format JSON valide (tableau ou objet)</p>
+              {!valid && (
+                <span className="text-xs text-red-400 font-medium">JSON invalide</span>
+              )}
+            </div>
             <textarea
               value={section.value || ''}
               onChange={(e) => updateSectionValue(section.key, e.target.value)}
               rows={6}
-              className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors font-mono resize-y"
+              className={`w-full bg-slate-800 border ${
+                valid ? 'border-slate-600 focus:border-amber-500' : 'border-red-500 focus:border-red-400'
+              } rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none transition-colors font-mono resize-y`}
             />
           </div>
         );
+      }
       default:
         return null;
     }
   };
 
   return (
-    <AdminPage loading={loading} className="flex gap-6 min-h-[calc(100vh-7rem)]">
+    <AdminPage className="flex gap-6 min-h-[calc(100vh-7rem)]">
       {/* Page Sidebar */}
       <div className="w-64 flex-shrink-0">
         <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Pages</h3>
@@ -262,15 +320,16 @@ export default function PagesEditor() {
             <h2 className="text-2xl font-bold text-slate-200">
               {pages.find((p) => p.slug === selectedPage)?.label || selectedPage}
             </h2>
-            <p className="text-slate-400 text-sm mt-1">Editez les sections de la page.</p>
+            <p className="text-slate-400 text-sm mt-1">Éditez les sections de la page.</p>
           </div>
           <button
             type="button"
             onClick={(e) => {
               e.preventDefault();
-              fetchPage();
+              fetchPage(selectedPage);
             }}
-            className="text-slate-400 hover:text-slate-200 transition-colors"
+            className="text-slate-400 hover:text-slate-200 transition-colors p-2 rounded-lg hover:bg-slate-800"
+            title="Rafraîchir"
           >
             <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -282,12 +341,12 @@ export default function PagesEditor() {
             <RefreshCw className="h-8 w-8 text-[#cda434] animate-spin" />
           </div>
         ) : !pageData?.sections || pageData.sections.length === 0 ? (
-          <div className="text-center py-12 text-slate-500">
+          <div className="text-center py-12 text-slate-500 bg-[#1e293b] border border-slate-700 rounded-lg">
             <p>Aucune section disponible pour cette page.</p>
           </div>
         ) : (
           <div className="space-y-4">
-            {pageData?.sections?.map((section) => (
+            {pageData.sections.map((section) => (
               <div
                 key={section.key}
                 className="bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden"
@@ -319,6 +378,11 @@ export default function PagesEditor() {
                       )}
                       {savingKey === section.key ? 'Sauvegarde...' : 'Sauvegarder'}
                     </button>
+                  )}
+                  {section.type === 'image' && savingKey === section.key && (
+                    <span className="inline-flex items-center gap-1 text-xs text-amber-400">
+                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Transfert...
+                    </span>
                   )}
                 </div>
                 <div className="p-5">
