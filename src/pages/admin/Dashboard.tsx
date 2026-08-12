@@ -66,7 +66,7 @@ export default function Dashboard() {
       const [demandesRes, filialesRes, statsRes] = await Promise.all([
         api.get('/api/v1/admin/demandes?limit=100'),
         api.get('/api/v1/admin/filiales'),
-        api.get('/api/v1/admin/stats'),
+        api.get('/api/v1/admin/dashboard/stats'),
       ]);
       return { demandesRes, filialesRes, statsRes };
     },
@@ -89,7 +89,7 @@ export default function Dashboard() {
   const handleStatusUpdate = async (id: number, newStatus: string) => {
     setUpdatingId(id);
     try {
-      await api.patch(`/api/v1/admin/demandes/${id}`, { statut: newStatus });
+      await api.put(`/api/v1/admin/demandes/${id}/status`, { status: newStatus });
       queryClient.invalidateQueries({ queryKey: ['dashboardData'] });
     } catch (err) {
       console.error('Erreur mise a jour statut:', err);
