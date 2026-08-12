@@ -161,7 +161,7 @@ function App() {
         {/* Admin routes with auth protection */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Login />} />
-          <Route path="login" element={<Login />} />
+          <Route path="admin/login" element={<Login />} />
           <Route element={<DashboardLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="demandes" element={<Leads />} />
