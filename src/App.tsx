@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation, Outlet, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import Lenis from '@studio-freight/lenis';
 import { AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
@@ -37,33 +37,31 @@ import TemoignagesManager from './pages/admin/TemoignagesManager';
 import RealisationsManager from './pages/admin/RealisationsManager';
 
 import { AnimatedPage } from './components/layout/AnimatedPage';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
+import NotFound from './components/NotFound';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// Global GSAP defaults so animations don't disappear while reading
 ScrollTrigger.defaults({
   toggleActions: "play none none reverse",
 });
 
+// ─── Guard Authentification Admin ──────────────────────────────────────────
+
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  // Read token once on mount to avoid premature redirects when the 401
-  // interceptor clears localStorage mid-session (e.g. transient server errors).
-  // The interceptor itself performs the logout navigation via window.location.
-  const [token] = useState(() => localStorage.getItem('admin_token'));
+  // Lecture directe de localStorage à chaque rendu pour réagir immédiatement au login
+  const token = localStorage.getItem('admin_token');
   const location = useLocation();
 
-  // Allow access to login page without token
-  if (!token && (location.pathname === '/admin' || location.pathname === '/admin/login')) {
-    return <>{children}</>;
-  }
+  const isLoginPage = location.pathname === '/admin' || location.pathname === '/admin/login';
 
-  // If no token, redirect to login
-  if (!token) {
+  // Si non connecté et essaie d'accéder à une page protégée -> Redirection vers Login
+  if (!token && !isLoginPage) {
     return <Navigate to="/admin/login" replace />;
   }
 
-  // If authenticated and on login/index, redirect to dashboard
-  if (location.pathname === '/admin' || location.pathname === '/admin/login') {
+  // Si connecté et sur la page de login -> Redirection vers Dashboard
+  if (token && isLoginPage) {
     return <Navigate to="/admin/dashboard" replace />;
   }
 
@@ -121,14 +119,10 @@ function AnimatedRoutes() {
   );
 }
 
-import { useRealtimeSync } from './hooks/useRealtimeSync';
-import NotFound from './components/NotFound';
-
 function App() {
   useRealtimeSync();
 
   useEffect(() => {
-    // Initialisation du Smooth Scroll (Lenis)
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
@@ -159,10 +153,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* Admin routes with auth protection */}
+        {/* Admin routes avec protection */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Login />} />
-          <Route path="admin/login" element={<Login />} />
+          <Route path="login" element={<Login />} /> {/* 👈 Correction ici: "login" au lieu de "admin/login" */}
           <Route element={<DashboardLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="demandes" element={<Leads />} />
@@ -178,9 +172,9 @@ function App() {
           </Route>
         </Route>
 
-        {/* Public routes with shared layout */}
+        {/* Public routes avec layout partagé */}
         <Route element={<PublicLayout />}>
-          <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>}  />
+          <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Route>
       </Routes>
     </BrowserRouter>
