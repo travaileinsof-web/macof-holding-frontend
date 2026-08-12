@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ErrorBoundary } from '../../components/ui/ErrorBoundary';
 import { Outlet, Navigate, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   LogOut,
   LayoutDashboard,
@@ -69,6 +70,7 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminUser, setAdminUser] = useState<AdminUser>({});
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   useEffect(() => {
     try {
@@ -104,9 +106,11 @@ export default function DashboardLayout() {
     return <Navigate to="/admin/login" replace />;
   }
 
-  const handleLogout = () => {
+  const handleLogoutConfirm = () => {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
+    toast.success('Déconnexion réussie');
+    setShowLogoutModal(false);
     navigate('/admin/login');
   };
 
@@ -178,7 +182,7 @@ export default function DashboardLayout() {
         {/* Logout */}
         <div className="p-3 border-t border-slate-700">
           <button
-            onClick={handleLogout}
+            onClick={() => setShowLogoutModal(true)}
             className="flex items-center gap-3 px-4 py-2.5 w-full text-left text-sm font-medium rounded-lg text-red-400 hover:bg-red-400/10 transition-colors"
           >
             <LogOut className="h-5 w-5 flex-shrink-0" />
@@ -215,6 +219,32 @@ export default function DashboardLayout() {
           </ErrorBoundary>
         </main>
       </div>
+
+      {/* Logout Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center">
+          <div className="bg-[#1e293b] rounded-lg shadow-2xl p-6 max-w-sm w-full mx-4 border border-slate-700">
+            <h2 className="text-xl font-semibold text-white mb-2">Confirmer la déconnexion</h2>
+            <p className="text-slate-400 text-sm mb-6">
+              Êtes-vous sûr de vouloir vous déconnecter ? Vous devrez vous reconnecter pour accéder à l'administration.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-300 bg-slate-700 hover:bg-slate-600 transition-colors"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleLogoutConfirm}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-600 hover:bg-red-700 transition-colors"
+              >
+                Déconnecter
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
