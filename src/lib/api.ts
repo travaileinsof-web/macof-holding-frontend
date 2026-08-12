@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "sonner";
 
 // Nettoyage de l'URL de base pour éviter les slashes de fin
 const rawUrl = import.meta.env.VITE_API_URL || "";
@@ -36,9 +37,34 @@ api.interceptors.request.use((config) => {
 let hasRedirectedToLogin = false;
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Affiche un toast de succès si le header indique que c'est une création/modification
+    if (response.status === 201 || response.status === 200) {
+      const method = response.config.method?.toUpperCase();
+      if (method === "POST" || method === "PUT" || method === "PATCH") {
+        toast.success("Opération réussie");
+      }
+    }
+    return response;
+  },
   (error) => {
     const status = error?.response?.status;
+    const message = error?.response?.data?.message || error?.message;
+
+    // Affiche le toast d'erreur
+    if (status === 401) {
+      toast.error("Session expirée. Veuillez vous reconnecter.");
+    } else if (status === 403) {
+      toast.error("Accès refusé.");
+    } else if (status === 404) {
+      toast.error("Ressource non trouvée.");
+    } else if (status === 400) {
+      toast.error(message || "Données invalides.");
+    } else if (status >= 500) {
+      toast.error("Erreur serveur. Veuillez réessayer plus tard.");
+    } else {
+      toast.error(message || "Une erreur est survenue.");
+    }
 
     if (status === 401 && !hasRedirectedToLogin) {
       const pathname = window.location.pathname;

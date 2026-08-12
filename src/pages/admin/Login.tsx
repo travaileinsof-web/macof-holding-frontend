@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { api } from '@/lib/api';
@@ -25,20 +26,21 @@ export default function Login() {
       if (response.data.success && response.data.data.token) {
         localStorage.setItem('admin_token', response.data.data.token);
         localStorage.setItem('admin_user', JSON.stringify(response.data.data.user));
+        toast.success('Connexion réussie !');
         navigate('/admin/dashboard');
       } else {
-        setError(response.data.message || 'Erreur de connexion');
+        const errorMsg = response.data.message || 'Erreur de connexion';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err: any) {
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else if (err.response?.status === 401) {
-        setError('Email ou mot de passe incorrect');
-      } else if (err.response?.status === 429) {
-        setError('Trop de tentatives. Réessayez dans 1 minute.');
-      } else {
-        setError('Erreur de connexion au serveur');
-      }
+      const errorMsg = err.response?.data?.message || 
+                       (err.response?.status === 401 ? 'Email ou mot de passe incorrect' : 
+                        err.response?.status === 429 ? 'Trop de tentatives. Réessayez dans 1 minute.' :
+                        'Erreur de connexion au serveur');
+      setError(errorMsg);
+      // Les toasts d'erreur sont gérés par l'intercepteur de l'API
+      // pas besoin d'ajouter un toast ici (évite la duplication)
     } finally {
       setLoading(false);
     }

@@ -4,6 +4,7 @@ import Lenis from '@studio-freight/lenis';
 import { AnimatePresence } from 'framer-motion';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { Toaster } from 'sonner';
 
 import { Navbar } from './components/layout/Navbar';
 import { Footer } from './components/layout/Footer';
@@ -158,6 +159,7 @@ function App() {
 
   return (
     <BrowserRouter>
+      <Toaster position="top-right" richColors closeButton />
       <Routes>
         {/* Admin routes avec protection */}
         <Route path="/admin" element={<AdminLayout />}>
