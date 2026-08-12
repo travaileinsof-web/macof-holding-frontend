@@ -49,18 +49,15 @@ ScrollTrigger.defaults({
 // ─── Guard Authentification Admin ──────────────────────────────────────────
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  // Lecture directe de localStorage à chaque rendu pour réagir immédiatement au login
   const token = localStorage.getItem('admin_token');
   const location = useLocation();
 
   const isLoginPage = location.pathname === '/admin' || location.pathname === '/admin/login';
 
-  // Si non connecté et essaie d'accéder à une page protégée -> Redirection vers Login
   if (!token && !isLoginPage) {
     return <Navigate to="/admin/login" replace />;
   }
 
-  // Si connecté et sur la page de login -> Redirection vers Dashboard
   if (token && isLoginPage) {
     return <Navigate to="/admin/dashboard" replace />;
   }
@@ -76,17 +73,7 @@ function AdminLayout() {
   );
 }
 
-function PublicLayout() {
-  return (
-    <div className="min-h-screen flex flex-col overflow-hidden">
-      <Navbar />
-      <main className="flex-grow">
-        <Outlet />
-      </main>
-      <Footer />
-    </div>
-  );
-}
+// ─── Composant des Routes Animées ──────────────────────────────────────────
 
 function AnimatedRoutes() {
   const location = useLocation();
@@ -114,10 +101,29 @@ function AnimatedRoutes() {
         <Route path="/mining" element={<AnimatedPage><Mining /></AnimatedPage>} />
         <Route path="/fishing" element={<AnimatedPage><Fishing /></AnimatedPage>} />
         <Route path="/print" element={<AnimatedPage><Print /></AnimatedPage>} />
+
+        {/* Page 404 pour les URLs publiques inconnues */}
+        <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
       </Routes>
     </AnimatePresence>
   );
 }
+
+// ─── Layout Public ─────────────────────────────────────────────────────────
+
+function PublicLayout() {
+  return (
+    <div className="min-h-screen flex flex-col overflow-hidden">
+      <Navbar />
+      <main className="flex-grow">
+        <AnimatedRoutes /> {/* 👈 Intégration des routes animées ici */}
+      </main>
+      <Footer />
+    </div>
+  );
+}
+
+// ─── App Principal ─────────────────────────────────────────────────────────
 
 function App() {
   useRealtimeSync();
@@ -156,7 +162,7 @@ function App() {
         {/* Admin routes avec protection */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Login />} />
-          <Route path="login" element={<Login />} /> {/* 👈 Correction ici: "login" au lieu de "admin/login" */}
+          <Route path="login" element={<Login />} />
           <Route element={<DashboardLayout />}>
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="demandes" element={<Leads />} />
@@ -173,9 +179,7 @@ function App() {
         </Route>
 
         {/* Public routes avec layout partagé */}
-        <Route element={<PublicLayout />}>
-          <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
-        </Route>
+        <Route path="/*" element={<PublicLayout />} />
       </Routes>
     </BrowserRouter>
   );

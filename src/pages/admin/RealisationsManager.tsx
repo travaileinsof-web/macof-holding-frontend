@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Plus,
   Trash2,
@@ -19,7 +19,7 @@ interface Filiale {
 }
 
 interface Realisation {
-  id: string; // ID unique pour la clé React
+  id: string; // Unique ID for React keys
   title: string;
   desc: string;
   image: string;
@@ -28,14 +28,14 @@ interface Realisation {
 export default function RealisationsManager() {
   const [filiales, setFiliales] = useState<Filiale[]>([]);
   const [selectedSlug, setSelectedSlug] = useState<string>('');
-
+  
   const [realisations, setRealisations] = useState<Realisation[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-
+  
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-
+  
   const [formTitle, setFormTitle] = useState('');
   const [formDesc, setFormDesc] = useState('');
   const [formImageUrl, setFormImageUrl] = useState('');
@@ -44,107 +44,58 @@ export default function RealisationsManager() {
   const [uploading, setUploading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const objectUrlRef = useRef<string | null>(null);
 
-  // Fonction pour charger les filiales
-  const fetchFiliales = useCallback(async () => {
-    try {
-      const res = await api.get('/api/v1/admin/filiales');
-      if (res.data?.success) {
-        const data = res.data.data || [];
-        setFiliales(data);
-        if (data.length > 0 && !selectedSlug) {
-          setSelectedSlug(data[0].slug);
+  // Fetch filiales on mount
+  useEffect(() => {
+    const fetchFiliales = async () => {
+      try {
+        const res = await api.get('/api/v1/admin/filiales');
+        if (res.data.success) {
+          setFiliales(res.data.data || []);
+          if (res.data.data?.length > 0) {
+            setSelectedSlug(res.data.data[0].slug);
+          }
         }
+      } catch (err) {
+        console.error('Erreur fetch filiales:', err);
       }
-    } catch (err) {
-      console.error('Erreur fetch filiales:', err);
-    }
-  }, [selectedSlug]);
+    };
+    fetchFiliales();
+  }, []);
 
-  // Fonction pour charger les réalisations de la filiale sélectionnée
-  const fetchRealisations = useCallback(async (slug: string, silent = false) => {
-    if (!slug) return;
-    if (!silent) setLoading(true);
-    try {
-      const res = await api.get(`/api/v1/admin/pages/${slug}`);
-      if (res.data?.success && res.data.data?.contents) {
-        const contents = res.data.data.contents;
-        const realisationsSection = contents.find((c: any) => c.section_key === 'realisations');
-        if (realisationsSection?.content_value) {
-          try {
-            const parsed = JSON.parse(realisationsSection.content_value);
-            setRealisations(Array.isArray(parsed) ? parsed : []);
-          } catch (e) {
-            console.error('Erreur parsing JSON realisations:', e);
+  // Fetch realisations when selected slug changes
+  useEffect(() => {
+    if (!selectedSlug) return;
+    const fetchRealisations = async () => {
+      setLoading(true);
+      try {
+        const res = await api.get(`/api/v1/admin/pages/${selectedSlug}`);
+        if (res.data.success && res.data.data?.contents) {
+          const contents = res.data.data.contents;
+          const realisationsSection = contents.find((c: any) => c.section_key === 'realisations');
+          if (realisationsSection && realisationsSection.content_value) {
+            try {
+              const parsed = JSON.parse(realisationsSection.content_value);
+              setRealisations(Array.isArray(parsed) ? parsed : []);
+            } catch (e) {
+              console.error('Erreur parsing JSON realisations:', e);
+              setRealisations([]);
+            }
+          } else {
             setRealisations([]);
           }
         } else {
           setRealisations([]);
         }
-      } else {
-        setRealisations([]);
-      }
-    } catch (err) {
-      console.error('Erreur fetch realisations:', err);
-      setRealisations([]);
-    } font-finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // Chargement initial des filiales
-  useEffect(() => {
-    fetchFiliales();
-  }, [fetchFiliales]);
-
-  // Chargement lors du changement de filiale
-  useEffect(() => {
-    fetchRealisations(selectedSlug);
-  }, [selectedSlug, fetchRealisations]);
-
-  // Écouteur SSE en temps réel pour l'invalidation des données
-  useEffect(() => {
-    const eventSource = new EventSource('/api/v1/events', { withCredentials: true });
-
-    eventSource.addEventListener('invalidate', (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.entity === 'filiales') {
-          fetchFiliales();
-        } else if (payload.entity === 'pages' || payload.entity === 'realisations') {
-          fetchRealisations(selectedSlug, true);
-        }
       } catch (err) {
-        console.error('Erreur parsing SSE invalidate payload:', err);
+        console.error('Erreur fetch realisations:', err);
+        setRealisations([]);
+      } finally {
+        setLoading(false);
       }
-    });
-
-    return () => {
-      eventSource.close();
     };
-  }, [selectedSlug, fetchFiliales, fetchRealisations]);
-
-  // Nettoyage de l'URL objet temporaire lors du démontage ou du changement d'image
-  const clearPreviewUrl = () => {
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-    setPreviewUrl(null);
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      clearPreviewUrl();
-      const url = URL.createObjectURL(file);
-      objectUrlRef.current = url;
-      setFormFile(file);
-      setPreviewUrl(url);
-      setFormImageUrl('');
-    }
-  };
+    fetchRealisations();
+  }, [selectedSlug]);
 
   const saveToBackend = async (newRealisations: Realisation[]) => {
     if (!selectedSlug) return;
@@ -152,7 +103,7 @@ export default function RealisationsManager() {
       const formData = new FormData();
       formData.append('key', 'realisations');
       formData.append('value', JSON.stringify(newRealisations));
-
+      
       await api.post(`/api/v1/admin/pages/${selectedSlug}`, formData);
     } catch (err) {
       console.error('Erreur sauvegarde realisations:', err);
@@ -160,18 +111,26 @@ export default function RealisationsManager() {
     }
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFormFile(file);
+      setPreviewUrl(URL.createObjectURL(file));
+      setFormImageUrl(''); // Reset URL if a file is chosen
+    }
+  };
+
   const openCreateModal = () => {
-    clearPreviewUrl();
     setEditId(null);
     setFormTitle('');
     setFormDesc('');
     setFormImageUrl('');
     setFormFile(null);
+    setPreviewUrl(null);
     setModalOpen(true);
   };
 
   const openEditModal = (r: Realisation) => {
-    clearPreviewUrl();
     setEditId(r.id);
     setFormTitle(r.title);
     setFormDesc(r.desc);
@@ -182,9 +141,9 @@ export default function RealisationsManager() {
   };
 
   const closeModal = () => {
-    clearPreviewUrl();
     setModalOpen(false);
     setFormFile(null);
+    setPreviewUrl(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -194,12 +153,13 @@ export default function RealisationsManager() {
     try {
       let finalImageUrl = formImageUrl;
 
+      // Upload file if selected
       if (formFile) {
         const formData = new FormData();
         formData.append('file', formFile);
         formData.append('folder', 'realisations');
         const uploadRes = await api.post('/api/v1/admin/upload', formData);
-        if (uploadRes.data?.success) {
+        if (uploadRes.data.success) {
           finalImageUrl = uploadRes.data.data.url;
         } else {
           throw new Error("Erreur lors de l'upload");
@@ -215,8 +175,8 @@ export default function RealisationsManager() {
       let updatedArray = [...realisations];
 
       if (editId) {
-        updatedArray = updatedArray.map((r) =>
-          r.id === editId
+        updatedArray = updatedArray.map(r => 
+          r.id === editId 
             ? { ...r, title: formTitle, desc: formDesc, image: finalImageUrl }
             : r
         );
@@ -225,7 +185,7 @@ export default function RealisationsManager() {
           id: Date.now().toString(),
           title: formTitle,
           desc: formDesc,
-          image: finalImageUrl,
+          image: finalImageUrl
         };
         updatedArray.push(newItem);
       }
@@ -242,15 +202,15 @@ export default function RealisationsManager() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette réalisation ?')) return;
+    if (!confirm('Supprimer cette r\u00e9alisation ?')) return;
     setSaving(true);
     try {
-      const updatedArray = realisations.filter((r) => r.id !== id);
+      const updatedArray = realisations.filter(r => r.id !== id);
       await saveToBackend(updatedArray);
       setRealisations(updatedArray);
     } catch (err) {
       console.error('Erreur suppression:', err);
-      alert('Erreur lors de la suppression.');
+      alert("Erreur lors de la suppression.");
     } finally {
       setSaving(false);
     }
@@ -258,11 +218,11 @@ export default function RealisationsManager() {
 
   return (
     <AdminPage loading={loading} className="space-y-6">
-      {/* En-tête */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-200">Réalisations par Filiale</h2>
-          <p className="text-slate-400 text-sm mt-1">Gérez les projets spécifiques affichés sur les pages des filiales.</p>
+          <h2 className="text-2xl font-bold text-slate-200">R\u00e9alisations par Filiale</h2>
+          <p className="text-slate-400 text-sm mt-1">G\u00e9rez les projets sp\u00e9cifiques affich\u00e9s sur les pages des filiales.</p>
         </div>
         <button
           onClick={openCreateModal}
@@ -270,14 +230,14 @@ export default function RealisationsManager() {
           className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Ajouter une réalisation
+          Ajouter une r\u00e9alisation
         </button>
       </div>
 
-      {/* Sélection de la filiale */}
+      {/* Filter / Filiale Selection */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#1e293b] p-4 rounded-lg border border-slate-700">
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">Sélectionner une filiale</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">S\u00e9lectionner une filiale</label>
           <select
             value={selectedSlug}
             onChange={(e) => setSelectedSlug(e.target.value)}
@@ -292,57 +252,57 @@ export default function RealisationsManager() {
         </div>
       </div>
 
-      {/* Grille des Réalisations */}
+      {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        {realisations.map((r) => (
-          <div
-            key={r.id}
-            className="group bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden hover:border-slate-600 transition-colors flex flex-col"
-          >
-            <div className="relative aspect-video bg-slate-800 overflow-hidden">
-              <img
-                src={getImageUrl(r.image)}
-                alt={r.title}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-              <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => openEditModal(r)}
-                  className="bg-slate-900/80 hover:bg-slate-900 text-amber-500 p-1.5 rounded-lg transition-colors backdrop-blur-sm"
-                >
-                  <Edit2 className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => handleDelete(r.id)}
-                  className="bg-red-600/90 hover:bg-red-500 text-white p-1.5 rounded-lg transition-colors backdrop-blur-sm disabled:opacity-50"
-                  disabled={saving}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+          {realisations.map((r) => (
+            <div
+              key={r.id}
+              className="group bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden hover:border-slate-600 transition-colors flex flex-col"
+            >
+              <div className="relative aspect-video bg-slate-800 overflow-hidden">
+                <img
+                  src={getImageUrl(r.image)}
+                  alt={r.title}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+                <div className="absolute top-2 right-2 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => openEditModal(r)}
+                    className="bg-slate-900/80 hover:bg-slate-900 text-amber-500 p-1.5 rounded-lg transition-colors backdrop-blur-sm"
+                  >
+                    <Edit2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(r.id)}
+                    className="bg-red-600/90 hover:bg-red-500 text-white p-1.5 rounded-lg transition-colors backdrop-blur-sm"
+                    disabled={saving}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-4 flex-1 flex flex-col">
+                <h3 className="text-sm font-semibold text-slate-200 mb-1">{r.title}</h3>
+                <p className="text-xs text-slate-400 line-clamp-3">{r.desc}</p>
               </div>
             </div>
-            <div className="p-4 flex-1 flex flex-col">
-              <h3 className="text-sm font-semibold text-slate-200 mb-1">{r.title}</h3>
-              <p className="text-xs text-slate-400 line-clamp-3">{r.desc}</p>
+          ))}
+          {realisations.length === 0 && (
+            <div className="col-span-full text-center py-12 text-slate-500 bg-[#1e293b] border border-slate-700 rounded-lg">
+              <ImageIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>Aucune r\u00e9alisation pour cette filiale.</p>
             </div>
-          </div>
-        ))}
-        {realisations.length === 0 && (
-          <div className="col-span-full text-center py-12 text-slate-500 bg-[#1e293b] border border-slate-700 rounded-lg">
-            <ImageIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-            <p>Aucune réalisation pour cette filiale.</p>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
 
-      {/* Modal d'édition / création */}
+      {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-[#1e293b] border border-slate-700 rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
               <h3 className="text-lg font-semibold text-slate-200">
-                {editId ? 'Modifier la réalisation' : 'Ajouter une réalisation'}
+                {editId ? 'Modifier la r\u00e9alisation' : 'Ajouter une r\u00e9alisation'}
               </h3>
               <button onClick={closeModal} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />
@@ -377,11 +337,9 @@ export default function RealisationsManager() {
                   type="text"
                   value={formImageUrl}
                   onChange={(e) => {
-                    const val = e.target.value;
-                    setFormImageUrl(val);
-                    if (val) {
-                      clearPreviewUrl();
-                      setPreviewUrl(val);
+                    setFormImageUrl(e.target.value);
+                    if (e.target.value) {
+                      setPreviewUrl(e.target.value);
                       setFormFile(null);
                     }
                   }}
@@ -389,7 +347,7 @@ export default function RealisationsManager() {
                   className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
                 />
               </div>
-
+              
               <div className="text-center text-xs text-slate-500 font-medium">OU</div>
 
               <div>
@@ -403,10 +361,10 @@ export default function RealisationsManager() {
                 />
                 {previewUrl && (
                   <div className="mt-3 rounded-lg overflow-hidden border border-slate-700 bg-slate-900">
-                    <img
-                      src={getImageUrl(previewUrl)}
-                      alt="Preview"
-                      className="w-full h-48 object-contain"
+                    <img 
+                      src={getImageUrl(previewUrl)} 
+                      alt="Preview" 
+                      className="w-full h-48 object-contain" 
                     />
                   </div>
                 )}
