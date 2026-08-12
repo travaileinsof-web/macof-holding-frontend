@@ -86,7 +86,7 @@ export default function DashboardLayout() {
     queryFn: async () => {
       if (!token) return {};
       try {
-        const response = await api.get('/api/v1/admin/stats');
+        const response = await api.get('/api/v1/admin/dashboard/stats');
         if (response.data.success) {
           const nouveauCount = response.data.data?.nouvelles_demandes ?? 0;
           return { '/admin/demandes': nouveauCount };
