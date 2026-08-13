@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Search,
   Plus,
@@ -8,9 +8,16 @@ import {
   RefreshCw,
   Edit2,
   Building2,
+  Mail,
+  Phone,
+  MapPin,
+  Globe,
+  Image as ImageIcon,
+  ListChecks,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AdminPage } from '../../components/ui/AdminPage';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -60,6 +67,9 @@ export default function FilialesManager() {
   const [form, setForm] = useState<FormDataState>(emptyForm);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
+  const [deleteTargetName, setDeleteTargetName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const queryClient = useQueryClient();
@@ -78,6 +88,29 @@ export default function FilialesManager() {
     setImageFile(null);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
+
+  // ─── Verrouille le scroll de la page en arrière-plan pendant que le modal est ouvert ───
+  // (sans ça, la molette peut faire défiler la page derrière au lieu du contenu du modal,
+  // ce qui donnait l'impression qu'il fallait scroller "manuellement" avec la scrollbar)
+  useEffect(() => {
+    if (modalOpen) {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [modalOpen]);
+
+  // ─── Fermeture au clavier (Échap) ───
+  useEffect(() => {
+    if (!modalOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') closeModal();
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [modalOpen]);
 
   const saveMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -193,8 +226,18 @@ export default function FilialesManager() {
   };
 
   const handleDelete = (id: number) => {
-    if (!confirm('Archiver cette filiale ? Elle ne sera plus visible mais pourra être restaurée en base si besoin.')) return;
-    deleteMutation.mutate(id);
+    const filiale = filiales.find(f => f.id === id);
+    if (!filiale) return;
+    setDeleteTargetId(id);
+    setDeleteTargetName(filiale.nom);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTargetId !== null) {
+      deleteMutation.mutate(deleteTargetId);
+      setDeleteConfirmOpen(false);
+    }
   };
 
   const statutBadge = (statut: string) => {
@@ -228,7 +271,7 @@ export default function FilialesManager() {
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold text-slate-200">Filiales</h2>
-            <p className="text-slate-400 text-sm mt-1">Gerez les filiales du groupe MACOF.</p>
+            <p className="text-slate-400 text-sm mt-1">Gérez les filiales du groupe MACOF.</p>
           </div>
           <button
             onClick={openCreateModal}
@@ -293,7 +336,7 @@ export default function FilialesManager() {
                   <tr>
                     <td colSpan={5} className="px-6 py-12 text-center text-slate-500">
                       <Building2 className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                      <p>Aucune filiale trouvee.</p>
+                      <p>Aucune filiale trouvée.</p>
                     </td>
                   </tr>
                 )}
@@ -305,145 +348,202 @@ export default function FilialesManager() {
         {/* Create/Edit Modal */}
         {modalOpen &&
           createPortal(
-            <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#1e293b] border border-slate-700 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
-                  <h3 className="text-lg font-semibold text-slate-200">
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+              onClick={(e) => {
+                // Ferme uniquement si on clique sur le fond, pas sur le panneau
+                if (e.target === e.currentTarget) closeModal();
+              }}
+            >
+              {/*
+                Structure clé pour un scroll fluide :
+                - le panneau est un flex-col avec une hauteur MAXIMALE (max-h-[90vh])
+                - le header et le footer sont "shrink-0" (taille fixe, ne rétrécissent jamais)
+                - seul le body a "flex-1 overflow-y-auto min-h-0" → c'est LUI qui scrolle,
+                  la molette de la souris agit directement dessus dès qu'on survole le modal.
+              */}
+              <div
+                className="flex flex-col w-full max-w-2xl max-h-[90vh] bg-[#1e293b] border border-slate-700 rounded-lg shadow-2xl overflow-hidden"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Header (fixe) */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700 shrink-0">
+                  <h3 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-amber-500" />
                     {editId ? 'Modifier la filiale' : 'Ajouter une filiale'}
                   </h3>
-                  <button onClick={closeModal} className="text-slate-400 hover:text-white">
+                  <button
+                    onClick={closeModal}
+                    className="text-slate-400 hover:text-white hover:bg-slate-700 rounded-lg p-1.5 transition-colors"
+                  >
                     <X className="h-5 w-5" />
                   </button>
                 </div>
 
-                <div className="px-6 py-5 space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Nom *</label>
-                      <input
-                        type="text"
-                        value={form.nom}
-                        onChange={(e) => updateForm('nom', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Slug</label>
-                      <input
-                        type="text"
-                        value={form.slug}
-                        onChange={(e) => updateForm('slug', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Secteur</label>
-                    <input
-                      type="text"
-                      value={form.secteur}
-                      onChange={(e) => updateForm('secteur', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
-                    <textarea
-                      value={form.description}
-                      onChange={(e) => updateForm('description', e.target.value)}
-                      rows={3}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors resize-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                      Details (un par ligne)
-                    </label>
-                    <textarea
-                      value={form.details}
-                      onChange={(e) => updateForm('details', e.target.value)}
-                      rows={4}
-                      placeholder="Detail 1&#10;Detail 2&#10;Detail 3"
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors resize-none placeholder-slate-600"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
-                      <input
-                        type="email"
-                        value={form.email}
-                        onChange={(e) => updateForm('email', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Telephone</label>
-                      <input
-                        type="tel"
-                        value={form.telephone}
-                        onChange={(e) => updateForm('telephone', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Adresse</label>
-                      <input
-                        type="text"
-                        value={form.adresse}
-                        onChange={(e) => updateForm('adresse', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-300 mb-1">Site web</label>
-                      <input
-                        type="url"
-                        value={form.site_web}
-                        onChange={(e) => updateForm('site_web', e.target.value)}
-                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Statut</label>
-                    <select
-                      value={form.statut}
-                      onChange={(e) => updateForm('statut', e.target.value)}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
-                    >
-                      <option value="actif">Active</option>
-                      <option value="inactif">Inactive</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">Image</label>
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                      className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-600 file:text-white hover:file:bg-amber-500"
-                    />
-                    {imagePreview && (
-                      <div className="mt-3 rounded-lg overflow-hidden border border-slate-700">
-                        <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover" />
+                {/* Body (scrollable) */}
+                <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-6 py-5 space-y-6">
+                  {/* Section : Informations générales */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                      Informations générales
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">Nom *</label>
+                        <input
+                          type="text"
+                          value={form.nom}
+                          onChange={(e) => updateForm('nom', e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
+                          required
+                        />
                       </div>
-                    )}
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-1">Slug</label>
+                        <input
+                          type="text"
+                          value={form.slug}
+                          onChange={(e) => updateForm('slug', e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors font-mono"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Secteur</label>
+                      <input
+                        type="text"
+                        value={form.secteur}
+                        onChange={(e) => updateForm('secteur', e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Description</label>
+                      <textarea
+                        value={form.description}
+                        onChange={(e) => updateForm('description', e.target.value)}
+                        rows={3}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1.5">
+                        <ListChecks className="h-3.5 w-3.5 text-slate-500" />
+                        Détails (un par ligne)
+                      </label>
+                      <textarea
+                        value={form.details}
+                        onChange={(e) => updateForm('details', e.target.value)}
+                        rows={4}
+                        placeholder="Détail 1&#10;Détail 2&#10;Détail 3"
+                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors resize-none placeholder-slate-600"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Section : Coordonnées */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                      Coordonnées
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1.5">
+                          <Mail className="h-3.5 w-3.5 text-slate-500" />
+                          Email
+                        </label>
+                        <input
+                          type="email"
+                          value={form.email}
+                          onChange={(e) => updateForm('email', e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1.5">
+                          <Phone className="h-3.5 w-3.5 text-slate-500" />
+                          Téléphone
+                        </label>
+                        <input
+                          type="tel"
+                          value={form.telephone}
+                          onChange={(e) => updateForm('telephone', e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-slate-500" />
+                          Adresse
+                        </label>
+                        <input
+                          type="text"
+                          value={form.adresse}
+                          onChange={(e) => updateForm('adresse', e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1.5">
+                          <Globe className="h-3.5 w-3.5 text-slate-500" />
+                          Site web
+                        </label>
+                        <input
+                          type="url"
+                          value={form.site_web}
+                          onChange={(e) => updateForm('site_web', e.target.value)}
+                          className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-1">Statut</label>
+                      <select
+                        value={form.statut}
+                        onChange={(e) => updateForm('statut', e.target.value)}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
+                      >
+                        <option value="actif">Active</option>
+                        <option value="inactif">Inactive</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Section : Image */}
+                  <div className="space-y-4">
+                    <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                      Image
+                    </h4>
+                    <div>
+                      <label className="text-sm font-medium text-slate-300 mb-1 flex items-center gap-1.5">
+                        <ImageIcon className="h-3.5 w-3.5 text-slate-500" />
+                        Visuel de la filiale
+                      </label>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-amber-600 file:text-white hover:file:bg-amber-500"
+                      />
+                      {imagePreview && (
+                        <div className="mt-3 rounded-lg overflow-hidden border border-slate-700">
+                          <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover" />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-700">
+                {/* Footer (fixe) */}
+                <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-700 shrink-0">
                   <button
                     onClick={closeModal}
                     className="px-4 py-2 text-sm text-slate-400 hover:text-slate-200 transition-colors"
@@ -467,7 +567,20 @@ export default function FilialesManager() {
             </div>,
             document.body,
           )}
-      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Archiver la filiale ?"
+        message={`Êtes-vous sûr de vouloir archiver "${deleteTargetName}" ? Elle ne sera plus visible mais pourra être restaurée en base si besoin.`}
+        confirmText="Archiver"
+        cancelText="Annuler"
+        isDangerous={true}
+        isLoading={deleteMutation.isPending}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
+    </div>
     </AdminPage>
   );
 }

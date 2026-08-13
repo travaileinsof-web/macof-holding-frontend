@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   MessageSquareQuote,
   Plus,
@@ -7,12 +7,12 @@ import {
   RefreshCw,
   CheckCircle,
   Image as ImageIcon,
-  Edit2,
   Upload,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { getImageUrl } from '../../lib/utils';
 import { AdminPage } from '../../components/ui/AdminPage';
+import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -32,6 +32,13 @@ export default function TemoignagesManager() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteTargetName, setDeleteTargetName] = useState('');
+
+  // Snapshot de référence (sans les id internes) pour détecter les changements réels
+  const initialDataRef = useRef<string>('[]');
+  const [isDirty, setIsDirty] = useState(false);
 
   // ─── Fetch Data ─────────────────────────────────────────────────────────────
 
@@ -45,9 +52,18 @@ export default function TemoignagesManager() {
           const parsedArray = Array.isArray(parsed) ? parsed : [];
           const withIds = parsedArray.map((t: any) => ({ ...t, id: Math.random().toString(36).substring(7) }));
           setTemoignages(withIds);
+          // On garde une empreinte des données telles que reçues du serveur (sans id local)
+          initialDataRef.current = JSON.stringify(parsedArray);
+          setIsDirty(false);
         } catch {
           setTemoignages([]);
+          initialDataRef.current = '[]';
+          setIsDirty(false);
         }
+      } else {
+        setTemoignages([]);
+        initialDataRef.current = '[]';
+        setIsDirty(false);
       }
     } catch (err) {
       console.error('Erreur fetch temoignages:', err);
@@ -57,6 +73,12 @@ export default function TemoignagesManager() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Recalcule isDirty à chaque changement de la liste (ajout, suppression, édition, upload)
+  useEffect(() => {
+    const stripped = temoignages.map(({ id, ...rest }) => rest);
+    setIsDirty(JSON.stringify(stripped) !== initialDataRef.current);
+  }, [temoignages]);
 
   // ─── Handlers ───────────────────────────────────────────────────────────────
 
@@ -68,7 +90,18 @@ export default function TemoignagesManager() {
   };
 
   const handleRemoveTemoignage = (id: string) => {
-    setTemoignages((prev) => prev.filter((t) => t.id !== id));
+    const tem = temoignages.find(t => t.id === id);
+    if (!tem) return;
+    setDeleteTargetId(id);
+    setDeleteTargetName(tem.nom || 'Sans nom');
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (deleteTargetId !== null) {
+      setTemoignages((prev) => prev.filter((t) => t.id !== deleteTargetId));
+      setDeleteConfirmOpen(false);
+    }
   };
 
   const handleChange = (id: string, field: keyof Temoignage, value: string) => {
@@ -95,6 +128,8 @@ export default function TemoignagesManager() {
   };
 
   const handleSave = async () => {
+    if (!isDirty || saving) return; // garde-fou supplémentaire : pas de requête sans modification
+
     setSaving(true);
     try {
       // Remove 'id' field before saving to DB
@@ -106,6 +141,11 @@ export default function TemoignagesManager() {
           { section_key: 'temoignages', content_value: JSON.stringify(dataToSave), content_type: 'json' }
         ],
       });
+
+      // Nouveau point de référence : le bouton redevient désactivé jusqu'à la prochaine modif
+      initialDataRef.current = JSON.stringify(dataToSave);
+      setIsDirty(false);
+
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
@@ -149,8 +189,9 @@ export default function TemoignagesManager() {
           </button>
           <button
             onClick={handleSave}
-            disabled={saving}
-            className="inline-flex items-center gap-2 bg-[#cda434] hover:bg-[#cda434]/80 disabled:opacity-50 text-black font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors"
+            disabled={saving || !isDirty}
+            title={!isDirty ? 'Aucune modification à sauvegarder' : undefined}
+            className="inline-flex items-center gap-2 bg-[#cda434] hover:bg-[#cda434]/80 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#cda434] text-black font-semibold px-5 py-2.5 rounded-lg text-sm transition-colors"
           >
             <span className="relative flex items-center justify-center h-4 w-4">
               <Save className={`h-4 w-4 absolute transition-opacity ${saving ? 'opacity-0' : 'opacity-100'}`} />
@@ -275,6 +316,18 @@ export default function TemoignagesManager() {
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        title="Supprimer le témoignage ?"
+        message={`Êtes-vous sûr de vouloir supprimer le témoignage de "${deleteTargetName}" ? Cette action est irréversible.`}
+        confirmText="Supprimer"
+        cancelText="Annuler"
+        isDangerous={true}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteConfirmOpen(false)}
+      />
     </div>
     </AdminPage>
   );
