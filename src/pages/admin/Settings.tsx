@@ -27,6 +27,8 @@ interface SettingsData {
   social_linkedin: string;
   social_instagram: string;
   social_twitter: string;
+  restauration_frais_livraison_gnf: number;
+  restauration_acompte_pourcent: number;
 }
 
 const maskedPassword = '\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022';
@@ -51,6 +53,8 @@ export default function Settings() {
     social_linkedin: '',
     social_instagram: '',
     social_twitter: '',
+    restauration_frais_livraison_gnf: 0,
+    restauration_acompte_pourcent: 30,
   });
 
   const originalPasswordRef = useRef('');
@@ -81,6 +85,8 @@ export default function Settings() {
         social_linkedin: settings.social_linkedin || '',
         social_instagram: settings.social_instagram || '',
         social_twitter: settings.social_twitter || '',
+        restauration_frais_livraison_gnf: parseInt(settings.restauration_frais_livraison_gnf || '0', 10) || 0,
+        restauration_acompte_pourcent: parseInt(settings.restauration_acompte_pourcent || '30', 10) || 30,
       });
       setPasswordChanged(false);
     }
@@ -112,6 +118,8 @@ export default function Settings() {
       social_linkedin: form.social_linkedin,
       social_instagram: form.social_instagram,
       social_twitter: form.social_twitter,
+      restauration_frais_livraison_gnf: String(form.restauration_frais_livraison_gnf),
+      restauration_acompte_pourcent: String(form.restauration_acompte_pourcent),
     };
 
     const pwd = getPasswordValue();
@@ -378,6 +386,14 @@ export default function Settings() {
                   </p>
                 )}
               </div>
+            </div>
+          </div>
+
+          <div className="bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden">
+            <div className="px-5 py-3 bg-slate-800/50 border-b border-slate-700"><h3 className="text-sm font-semibold text-slate-200">Commandes SEBA</h3></div>
+            <div className="px-5 py-5 space-y-4">
+              <div><label className="block text-sm font-medium text-slate-300 mb-1">Frais de livraison (GNF)</label><input type="number" min="0" value={form.restauration_frais_livraison_gnf} onChange={(e) => updateForm('restauration_frais_livraison_gnf', parseInt(e.target.value, 10) || 0)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200" /></div>
+              <div><label className="block text-sm font-medium text-slate-300 mb-1">Acompte en ligne (%)</label><input type="number" min="1" max="100" value={form.restauration_acompte_pourcent} onChange={(e) => updateForm('restauration_acompte_pourcent', parseInt(e.target.value, 10) || 30)} className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200" /></div>
             </div>
           </div>
 

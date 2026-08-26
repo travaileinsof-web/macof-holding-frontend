@@ -4,6 +4,7 @@ import { X, ZoomIn } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '@/lib/api';
+import { Link } from 'react-router-dom';
 
 
 
@@ -80,6 +81,9 @@ export default function Galerie() {
             <p className="text-white/60 font-sans font-light max-w-2xl mx-auto leading-relaxed text-lg">
               Une sélection visuelle illustrant l'excellence opérationnelle de MACOF Holding à travers ses six pôles d'expertise.
             </p>
+            <Link to="/restauration#menu-commande" className="inline-flex mt-8 px-6 py-3 bg-white text-black text-xs uppercase tracking-[0.2em] hover:bg-red-200 transition-colors">
+              Découvrir le menu SEBA
+            </Link>
           </div>
 
           {/* Filtres Interactifs */}

@@ -3,6 +3,7 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '../ui/Button';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { CartNavbarLink } from '../restauration/CartNavbarLink';
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -55,6 +56,7 @@ export function Navbar() {
             </div>
 
             <div className="hidden lg:flex items-center">
+              <CartNavbarLink />
               <Link to="/contact">
                 <Button variant="outline" size="sm" className="text-[10px] tracking-widest uppercase px-6 border-white/50 text-white hover:bg-white hover:text-black">
                   Contact
@@ -90,6 +92,7 @@ export function Navbar() {
                 Contactez-nous
               </Button>
             </Link>
+            <CartNavbarLink />
           </div>
         </div>
       )}

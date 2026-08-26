@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatedPage } from '../../components/layout/AnimatedPage';
 import { Button } from '../../components/ui/Button';
-import { Input } from '../../components/ui/Input';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { MessageCircle } from 'lucide-react';
 import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
 import { api } from '@/lib/api';
+import MenuCommande from '../../components/restauration/MenuCommande';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -37,23 +36,15 @@ const fallbackServices = [
 export default function Restauration() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState<Record<string, string> | null>(null);
-  const [filialeData, setFilialeData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [formStatus, setFormStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [formData, setFormData] = useState({ nom_complet: '', email: '', telephone: '', objet: '', message: '' });
-  const [reference, setReference] = useState('');
-  const [whatsappUrl, setWhatsappUrl] = useState('');
 
   // Fetch page content and filiale data
   useEffect(() => {
     Promise.all([
       api.get(`/pages/${SLUG}`).catch(() => null),
-      api.get(`/filiales/${SLUG}`).catch(() => null)
-    ]).then(([pagesRes, filialesRes]) => {
+    ]).then(([pagesRes]) => {
       if (pagesRes?.data?.success) setContent(mergeContent(fallbackContent, pagesRes.data.data));
       else setContent(fallbackContent);
-      if (filialesRes?.data?.success) setFilialeData(filialesRes.data.data);
-    }).finally(() => setLoading(false));
+    });
   }, []);
 
   // Polling every 30s
@@ -61,32 +52,13 @@ export default function Restauration() {
     const poll = setInterval(() => {
       Promise.all([
         api.get(`/pages/${SLUG}`).catch(() => null),
-        api.get(`/filiales/${SLUG}`).catch(() => null)
-      ]).then(([pagesRes, filialesRes]) => {
+      ]).then(([pagesRes]) => {
         if (pagesRes?.data?.success) setContent(mergeContent(fallbackContent, pagesRes.data.data));
-        if (filialesRes?.data?.success) setFilialeData(filialesRes.data.data);
       });
     }, 30000);
     return () => clearInterval(poll);
   }, []);
 
-
-  const handleFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormStatus('loading');
-    try {
-      const response = await api.post('/demandes', { ...formData, filiale: 'MACOF Restauration', type_demande: 'devis' });
-      if (response.data.success) {
-        setReference(response.data.data?.reference || '');
-        setWhatsappUrl(response.data.data?.whatsapp_url || '');
-      }
-      setFormStatus('success');
-      setFormData({ nom_complet: '', email: '', telephone: '', objet: '', message: '' });
-    } catch (err) {
-      console.error('Erreur formulaire:', err);
-      setFormStatus('error');
-    }
-  };
 
   // Force fallbackServices to display the rich text if DB items lack descriptions
   let services = fallbackServices;
@@ -141,8 +113,8 @@ export default function Restauration() {
               {content?.hero_desc || fallbackContent.hero_desc}
             </p>
             <div className="mt-12 reveal-up">
-              <Button variant="luxury" size="lg" className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white hover:text-black transition-all duration-500 text-sm tracking-widest uppercase">
-                Explorer nos Menus
+              <Button variant="luxury" size="lg" onClick={() => document.getElementById('menu-commande')?.scrollIntoView({ behavior: 'smooth' })} className="bg-white/10 backdrop-blur-md border-white/20 hover:bg-white hover:text-black transition-all duration-500 text-sm tracking-widest uppercase">
+                Commander au menu
               </Button>
             </div>
           </div>
@@ -298,106 +270,7 @@ export default function Restauration() {
           </div>
         </section>
 
-        {/* Formulaire Spécifique */}
-        <section className="py-32 bg-background relative overflow-hidden">
-          <div className="absolute -left-1/4 top-1/2 -translate-y-1/2 w-1/2 h-[800px] bg-red-900/10 blur-[150px] rounded-full pointer-events-none" />
-          <div className="max-w-7xl mx-auto px-6 lg:px-12 relative z-10">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-start reveal-up">
-              <div>
-                <h2 className="text-4xl md:text-5xl font-serif text-white mb-6">Organisons votre <br/>Événement.</h2>
-                <p className="text-white font-light max-w-md mb-12">
-                  Sollicitez SEBA International pour une prestation sur-mesure. Décrivez-nous vos besoins, nous créerons un menu d'exception.
-                </p>
-                <div className="bg-white/5 p-8 border border-white/10">
-                  <h4 className="text-xl font-serif text-white mb-4">Contact Direct Restauration</h4>
-                  <p className="text-blue-200 font-light text-sm mb-2">Email: {filialeData?.email || content?.contact_email || fallbackContent.contact_email}</p>
-                  <p className="text-blue-200 font-light text-sm">Téléphone: {filialeData?.telephone || content?.contact_phone || fallbackContent.contact_phone}</p>
-                </div>
-              </div>
-              
-              <div>
-                {formStatus === 'success' ? (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-center">
-                    <p className="text-green-800 font-medium">Votre demande a été envoyée !</p>
-                    <p className="text-green-600 text-sm">Référence: {reference}</p>
-                    <p className="text-green-700 text-sm mt-1">Notre équipe traiteur vous recontactera très rapidement pour affiner votre besoin.</p>
-                    {whatsappUrl && (
-                      <a href={whatsappUrl} target="_blank" rel="noopener noreferrer"
-                         className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-                        <MessageCircle size={18} />
-                        Envoyer via WhatsApp
-                      </a>
-                    )}
-                    <div className="mt-4">
-                      <Button variant="outline" className="text-green-700 border-green-300 hover:bg-green-100" onClick={() => { setFormStatus('idle'); setReference(''); setWhatsappUrl(''); }}>Nouvelle demande</Button>
-                    </div>
-                  </div>
-                ) : (
-                  <form onSubmit={handleFormSubmit} className="bg-white p-8 border border-white/10 shadow-2xl">
-                    <h3 className="text-2xl font-serif text-black mb-8">Demande de Devis Traiteur</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-widest text-gray-500">Nom / Entreprise</label>
-                        <Input required placeholder="Votre nom" className="border-gray-200" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-widest text-gray-500">Téléphone</label>
-                        <Input required placeholder="+224 ..." className="border-gray-200" />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-widest text-gray-500">Type d'Événement</label>
-                        <select className="flex h-10 w-full rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm text-black focus:outline-none focus:border-primary">
-                          <option>Dîner de Gala</option>
-                          <option>Cocktail d'Entreprise</option>
-                          <option>Mariage / Réception</option>
-                          <option>Restauration Collective (Contrat)</option>
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-widest text-gray-500">Date Prévue</label>
-                        <Input type="date" required className="border-gray-200" />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-widest text-gray-500">Lieu de l'événement</label>
-                        <Input placeholder="Ex: Conakry, Hôtel X..." className="border-gray-200" />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-widest text-gray-500">Nombre de convives</label>
-                        <Input type="number" min="1" placeholder="Ex: 150" className="border-gray-200" />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-6 mb-6">
-                      <div className="space-y-2">
-                        <label className="text-xs uppercase tracking-widest text-gray-500">Budget Estimé par personne (GNF)</label>
-                        <Input placeholder="Ex: 500,000 GNF" className="border-gray-200" />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 mb-8">
-                      <label className="text-xs uppercase tracking-widest text-gray-500">Détails de la demande</label>
-                      <textarea
-                        required
-                        rows={4}
-                        className="flex w-full rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm text-black focus:outline-none focus:border-primary"
-                        placeholder="Allergies, type de cuisine, besoins spécifiques..."
-                      />
-                    </div>
-                    <Button variant="luxury" size="lg" className="w-full bg-primary text-white hover:bg-primary/90" disabled={formStatus === 'loading'}>
-                      {formStatus === 'loading' ? 'Envoi en cours...' : 'Envoyer la demande'}
-                    </Button>
-                  </form>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
+        <MenuCommande />
 
       </div>
     </AnimatedPage>

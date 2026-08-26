@@ -18,6 +18,7 @@ import {
   Users,
   MessageSquareQuote,
   Briefcase,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 
@@ -37,6 +38,7 @@ const navItems = [
   { label: 'Demandes', icon: Mail, path: '/admin/demandes' },
   { label: 'Filiales', icon: Building2, path: '/admin/filiales' },
   { label: 'Réalisations', icon: Briefcase, path: '/admin/realisations' },
+  { label: 'Menu & commandes', icon: UtensilsCrossed, path: '/admin/restauration' },
   { label: 'Galerie', icon: Image, path: '/admin/galerie' },
   { label: 'Catalogues', icon: FileText, path: '/admin/catalogues' },
   { label: 'Chiffres & Stats', icon: BarChart3, path: '/admin/stats' },
@@ -51,6 +53,7 @@ const pageTitles: Record<string, string> = {
   '/admin/demandes': 'Demandes',
   '/admin/filiales': 'Filiales',
   '/admin/realisations': 'R\u00e9alisations par Filiale',
+  '/admin/restauration': 'Menu & commandes SEBA',
   '/admin/galerie': 'Galerie',
   '/admin/catalogues': 'Catalogues',
   '/admin/stats': 'Chiffres & Statistiques',

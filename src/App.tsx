@@ -36,6 +36,10 @@ import StatsManager from './pages/admin/StatsManager';
 import PartenairesManager from './pages/admin/PartenairesManager';
 import TemoignagesManager from './pages/admin/TemoignagesManager';
 import RealisationsManager from './pages/admin/RealisationsManager';
+import RestaurationManager from './pages/admin/RestaurationManager';
+import ProductDetails from './pages/filiales/ProductDetails';
+import Checkout from './pages/filiales/Checkout';
+import { CartProvider } from './components/restauration/CartContext';
 
 import { AnimatedPage } from './components/layout/AnimatedPage';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
@@ -98,6 +102,8 @@ function AnimatedRoutes() {
         {/* Filiales */}
         <Route path="/immobilier" element={<AnimatedPage><Immobilier /></AnimatedPage>} />
         <Route path="/restauration" element={<AnimatedPage><Restauration /></AnimatedPage>} />
+        <Route path="/restauration/produit/:id" element={<AnimatedPage><ProductDetails /></AnimatedPage>} />
+        <Route path="/checkout" element={<AnimatedPage><Checkout /></AnimatedPage>} />
         <Route path="/transit" element={<AnimatedPage><Transit /></AnimatedPage>} />
         <Route path="/mining" element={<AnimatedPage><Mining /></AnimatedPage>} />
         <Route path="/fishing" element={<AnimatedPage><Fishing /></AnimatedPage>} />
@@ -160,6 +166,7 @@ function App() {
   return (
     <BrowserRouter>
       <Toaster position="top-right" richColors closeButton />
+      <CartProvider>
       <Routes>
         {/* Admin routes avec protection */}
         <Route path="/admin" element={<AdminLayout />}>
@@ -176,6 +183,7 @@ function App() {
             <Route path="partenaires" element={<PartenairesManager />} />
             <Route path="temoignages" element={<TemoignagesManager />} />
             <Route path="realisations" element={<RealisationsManager />} />
+            <Route path="restauration" element={<RestaurationManager />} />
             <Route path="settings" element={<Settings />} />
           </Route>
         </Route>
@@ -183,6 +191,7 @@ function App() {
         {/* Public routes avec layout partagé */}
         <Route path="/*" element={<PublicLayout />} />
       </Routes>
+      </CartProvider>
     </BrowserRouter>
   );
 }
