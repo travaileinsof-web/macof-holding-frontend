@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AdminPage } from '../../components/ui/AdminPage';
+import { getImageUrl } from '../../lib/utils';
 
 interface GalerieItem {
   id: number;
@@ -114,7 +115,7 @@ export default function GalerieManager() {
       const formData = new FormData();
       formData.append('titre', formTitre);
       formData.append('filiale', formFiliale);
-      formData.append('description', formDescription);
+      formData.append('description_courte', formDescription);
       formData.append('type_projet', formTypeProjet);
       formData.append('lieu', formLieu);
       formData.append('image', formFile);
@@ -194,7 +195,7 @@ export default function GalerieManager() {
             >
               <div className="relative aspect-video bg-slate-800 overflow-hidden">
                 <img
-                  src={img.image_path || img.image_url}
+                  src={getImageUrl(img.image_path || img.image_url)}
                   alt={img.titre}
                   className="w-full h-full object-cover"
                   loading="lazy"
@@ -253,7 +254,7 @@ export default function GalerieManager() {
                     className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-500 transition-colors"
                   >
                     {filiales.map((f) => (
-                      <option key={f.id} value={f.nom}>
+                      <option key={f.id} value={f.id}>
                         {f.nom}
                       </option>
                     ))}

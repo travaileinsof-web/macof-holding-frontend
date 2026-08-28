@@ -63,8 +63,7 @@ export function ContactForm({
     setErrorMsg('');
 
     try {
-      // Envoi vers l'endpoint public /contact
-      const response = await api.post('/contact', {
+      const response = await api.post('/demandes', {
         ...formData,
         type_demande: typeDemande,
       });

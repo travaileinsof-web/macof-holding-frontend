@@ -146,17 +146,25 @@ export default function PagesEditor() {
         }
       }
 
-      const formData = new FormData();
-      formData.append('key', key);
-      formData.append('value', section.value || '');
+      let value = section.value || '';
       if (imageFile) {
-        formData.append('image', imageFile);
+        const uploadData = new FormData();
+        uploadData.append('file', imageFile);
+        uploadData.append('folder', 'pages');
+        const uploadRes = await api.post('/api/v1/admin/upload', uploadData);
+        value = uploadRes.data?.data?.url || value;
       }
 
-      const res = await api.post(`/api/v1/admin/pages/${selectedPage}`, formData);
+      const res = await api.post('/api/v1/admin/pages/bulk', {
+        page_slug: selectedPage,
+        contents: [{
+          section_key: key,
+          content_value: value,
+          content_type: imageFile ? 'image' : section.type,
+        }],
+      });
       
-      if (res.data?.success && res.data.data) {
-        const updated = res.data.data;
+      if (res.data?.success) {
         // Mise à jour ciblée du state avec l'URL finale renvoyée par le backend (Vercel Blob / Storage local)
         setPageData((prev) => {
           if (!prev) return null;
@@ -166,8 +174,8 @@ export default function PagesEditor() {
               s.key === key
                 ? {
                     ...s,
-                    value: updated.value,
-                    image_url: updated.image_url || s.image_url,
+                  value,
+                  image_url: imageFile ? value : s.image_url,
                   }
                 : s
             ),

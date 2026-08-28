@@ -18,6 +18,7 @@ export default function Catalogues() {
   const [downloadStatus, setDownloadStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [error, setError] = useState('');
   const [whatsappUrl, setWhatsappUrl] = useState('');
+  const [leadForm, setLeadForm] = useState({ nom: '', email: '', telephone: '' });
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -55,6 +56,7 @@ export default function Catalogues() {
     setSelectedDoc(doc);
     setDownloadStatus('idle');
     setWhatsappUrl('');
+    setLeadForm({ nom: '', email: '', telephone: '' });
   };
 
   const handleDownload = async () => {
@@ -62,9 +64,9 @@ export default function Catalogues() {
     try {
       // Send lead data to API first
       const response = await api.post('/demandes', {
-        nom_complet: selectedDoc.leadForm?.nom || 'Visiteur',
-        email: selectedDoc.leadForm?.email || '',
-        telephone: selectedDoc.leadForm?.telephone || '',
+        nom_complet: leadForm.nom,
+        email: leadForm.email,
+        telephone: leadForm.telephone,
         objet: `Demande de catalogue: ${selectedDoc.titre}`,
         message: `Téléchargement du catalogue ${selectedDoc.titre}`,
         type_demande: 'information',
@@ -163,15 +165,15 @@ export default function Catalogues() {
                 <div className="space-y-4 mb-8">
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-widest text-white/50">Nom / Société *</label>
-                    <Input required placeholder="Votre nom" className="bg-background border-white/10 text-white placeholder:text-white/30" />
+                    <Input required placeholder="Votre nom" value={leadForm.nom} onChange={(e) => setLeadForm({ ...leadForm, nom: e.target.value })} className="bg-background border-white/10 text-white placeholder:text-white/30" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-widest text-white/50">Email Professionnel *</label>
-                    <Input required type="email" placeholder="email@domaine.com" className="bg-background border-white/10 text-white placeholder:text-white/30" />
+                    <Input required type="email" placeholder="email@domaine.com" value={leadForm.email} onChange={(e) => setLeadForm({ ...leadForm, email: e.target.value })} className="bg-background border-white/10 text-white placeholder:text-white/30" />
                   </div>
                   <div className="space-y-2">
                     <label className="text-xs uppercase tracking-widest text-white/50">Téléphone (Optionnel)</label>
-                    <Input placeholder="+224 ..." className="bg-background border-white/10 text-white placeholder:text-white/30" />
+                    <Input placeholder="+224 ..." value={leadForm.telephone} onChange={(e) => setLeadForm({ ...leadForm, telephone: e.target.value })} className="bg-background border-white/10 text-white placeholder:text-white/30" />
                   </div>
                 </div>
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatedPage } from '../../components/layout/AnimatedPage';
 import { Button } from '../../components/ui/Button';
 import gsap from 'gsap';
@@ -6,6 +6,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
 import { api } from '@/lib/api';
 import MenuCommande from '../../components/restauration/MenuCommande';
+import { Search } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -36,6 +37,9 @@ const fallbackServices = [
 export default function Restauration() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState<Record<string, string> | null>(null);
+  const [menuProducts, setMenuProducts] = useState<any[]>([]);
+  const [menuSearch, setMenuSearch] = useState('');
+  const [menuCategory, setMenuCategory] = useState('tous');
 
   // Fetch page content and filiale data
   useEffect(() => {
@@ -45,6 +49,17 @@ export default function Restauration() {
       if (pagesRes?.data?.success) setContent(mergeContent(fallbackContent, pagesRes.data.data));
       else setContent(fallbackContent);
     });
+  }, []);
+
+  useEffect(() => {
+    const loadMenu = () => {
+      api.get('/restauration/menu')
+        .then((res) => setMenuProducts(Array.isArray(res.data?.data) ? res.data.data : []))
+        .catch(() => setMenuProducts([]));
+    };
+    loadMenu();
+    const timer = window.setInterval(loadMenu, 30000);
+    return () => window.clearInterval(timer);
   }, []);
 
   // Polling every 30s
@@ -70,6 +85,18 @@ export default function Restauration() {
       }
     } catch(e) {}
   }
+
+  const menuPreview = menuProducts.length > 0 ? menuProducts : [
+    { nom: "Boulangerie & Pâtisserie", description: "Croissants purs beurre, pains artisanaux, et entremets créatifs.", prix_gnf: 0 },
+    { nom: "Plats Chauds & Traiteur", description: "Dégustation en 5 services, fusion terre-mer et spécialités africaines.", prix_gnf: 0 },
+    { nom: "Boissons & Cocktails", description: "Jus pressés à froid, sélection de vins et cocktails sans alcool premium.", prix_gnf: 0 },
+  ];
+  const menuCategories = ['tous', ...Array.from(new Set(menuPreview.map((menu) => menu.categorie).filter(Boolean)))];
+  const filteredMenu = useMemo(() => menuPreview.filter((menu) => {
+    const matchesCategory = menuCategory === 'tous' || menu.categorie === menuCategory;
+    const query = menuSearch.trim().toLowerCase();
+    return matchesCategory && (!query || `${menu.nom} ${menu.description || ''}`.toLowerCase().includes(query));
+  }), [menuPreview, menuCategory, menuSearch]);
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -222,19 +249,24 @@ export default function Restauration() {
                     <span className="mr-2">📄</span> Télécharger PDF
                   </Button>
                 </div>
+                <div className="flex flex-col sm:flex-row gap-3 mb-6">
+                  <label className="relative flex-1">
+                    <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+                    <input value={menuSearch} onChange={(event) => setMenuSearch(event.target.value)} placeholder="Rechercher un produit" className="w-full bg-white/[0.04] border border-white/10 pl-10 pr-4 py-3 text-sm text-white placeholder:text-white/40" />
+                  </label>
+                  <select value={menuCategory} onChange={(event) => setMenuCategory(event.target.value)} className="bg-white/[0.04] border border-white/10 px-4 py-3 text-sm text-white">
+                    {menuCategories.map((category) => <option key={category} value={category} className="bg-black">{category === 'tous' ? 'Toutes les catégories' : category}</option>)}
+                  </select>
+                </div>
                 <div className="space-y-4">
-                  {[
-                    { nom: "Boulangerie & Pâtisserie", desc: "Croissants purs beurre, pains artisanaux, et entremets créatifs.", prix: "Sur devis" },
-                    { nom: "Plats Chauds & Traiteur", desc: "Dégustation en 5 services, fusion terre-mer et spécialités africaines.", prix: "Sur devis" },
-                    { nom: "Boissons & Cocktails", desc: "Jus pressés à froid, sélection de vins et cocktails sans alcool premium.", prix: "Sur devis" }
-                  ].map((menu, i) => (
+                  {filteredMenu.map((menu, i) => (
                     <div key={i} className="p-6 border border-white/10 bg-white/[0.02] flex justify-between items-center group cursor-pointer hover:bg-white/[0.05]">
                       <div>
                         <h4 className="text-lg font-serif text-white mb-1 group-hover:text-primary transition-colors">{menu.nom}</h4>
-                        <p className="text-sm font-light text-blue-200">{menu.desc}</p>
+                        <p className="text-sm font-light text-blue-200">{menu.description}</p>
                       </div>
                       <div className="text-right whitespace-nowrap pl-4">
-                        <span className="text-sm font-serif text-white">{menu.prix}</span>
+                        <span className="text-sm font-serif text-white">{menu.prix_gnf ? `${new Intl.NumberFormat('fr-FR').format(menu.prix_gnf)} GNF` : 'Sur devis'}</span>
                       </div>
                     </div>
                   ))}

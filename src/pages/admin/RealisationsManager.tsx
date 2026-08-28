@@ -70,12 +70,13 @@ export default function RealisationsManager() {
       setLoading(true);
       try {
         const res = await api.get(`/api/v1/admin/pages/${selectedSlug}`);
-        if (res.data.success && res.data.data?.contents) {
-          const contents = res.data.data.contents;
-          const realisationsSection = contents.find((c: any) => c.section_key === 'realisations');
-          if (realisationsSection && realisationsSection.content_value) {
+        if (res.data.success && res.data.data?.sections) {
+          const contents = res.data.data.sections;
+          const realisationsSection = contents.find((c: any) => (c.section_key || c.key) === 'realisations');
+          if (realisationsSection && (realisationsSection.content_value || realisationsSection.value)) {
             try {
-              const parsed = JSON.parse(realisationsSection.content_value);
+              const value = realisationsSection.content_value ?? realisationsSection.value;
+              const parsed = typeof value === 'string' ? JSON.parse(value) : value;
               setRealisations(Array.isArray(parsed) ? parsed : []);
             } catch (e) {
               console.error('Erreur parsing JSON realisations:', e);
@@ -100,11 +101,14 @@ export default function RealisationsManager() {
   const saveToBackend = async (newRealisations: Realisation[]) => {
     if (!selectedSlug) return;
     try {
-      const formData = new FormData();
-      formData.append('key', 'realisations');
-      formData.append('value', JSON.stringify(newRealisations));
-      
-      await api.post(`/api/v1/admin/pages/${selectedSlug}`, formData);
+      await api.post('/api/v1/admin/pages/bulk', {
+        page_slug: selectedSlug,
+        contents: [{
+          section_key: 'realisations',
+          content_value: JSON.stringify(newRealisations),
+          content_type: 'json',
+        }],
+      });
     } catch (err) {
       console.error('Erreur sauvegarde realisations:', err);
       throw err;

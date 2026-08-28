@@ -140,12 +140,11 @@ export default function PartenairesManager() {
 
       if (formFile && !useUrlInput) {
         const formData = new FormData();
-        formData.append('image', formFile);
-        formData.append('titre', formNom);
-        formData.append('filiale', '');
-        const uploadRes = await api.post('/api/v1/admin/galerie', formData);
+        formData.append('file', formFile);
+        formData.append('folder', 'partenaires');
+        const uploadRes = await api.post('/api/v1/admin/upload', formData);
         if (uploadRes.data?.success) {
-          logoUrl = uploadRes.data.data?.image_path || '';
+          logoUrl = uploadRes.data.data?.url || '';
         }
       }
 

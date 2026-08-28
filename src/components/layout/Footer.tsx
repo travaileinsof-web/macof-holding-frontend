@@ -4,6 +4,7 @@ import { getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
 
 export function Footer() {
   const { settings } = useSettings();
+  const emails = (settings.contact_email || '').split(/[;,\n]+/).map((email) => email.trim()).filter(Boolean);
 
   return (
     <footer className="bg-[#050b14] border-t border-white/10 relative overflow-hidden">
@@ -30,12 +31,12 @@ export function Footer() {
                   {settings.contact_phone}
                 </a>
               )}
-              {settings.contact_email && (
-                <a href={`mailto:${settings.contact_email}`} className="flex items-center gap-3 text-white/70 hover:text-white transition-colors">
+              {emails.map((email) => (
+                <a key={email} href={`mailto:${email}`} className="flex items-center gap-3 text-white/70 hover:text-white transition-colors">
                   <span className="w-8 h-8 rounded-full border border-[#0A4287]/50 flex items-center justify-center text-[#0A4287] text-xs">✉</span>
-                  {settings.contact_email}
+                  {email}
                 </a>
-              )}
+              ))}
               {settings.contact_address && (
                 <div className="flex items-start gap-3 text-white/70">
                   <span className="w-8 h-8 rounded-full border border-[#0A4287]/50 flex items-center justify-center text-[#0A4287] text-xs flex-shrink-0">📍</span>

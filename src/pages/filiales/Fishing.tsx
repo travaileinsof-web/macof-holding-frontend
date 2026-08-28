@@ -33,7 +33,6 @@ const fallbackServices = [
 export default function Fishing() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState<Record<string, string> | null>(null);
-  const [loading, setLoading] = useState(true);
   const [formStatus, setFormStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
   const [formData, setFormData] = useState({ nom_complet: '', email: '', telephone: '', objet: '', message: '' });
   const [reference, setReference] = useState('');
@@ -44,13 +43,12 @@ export default function Fishing() {
   useEffect(() => {
     Promise.all([
       api.get(`/pages/${SLUG}`).catch(() => null),
-      api.get(`/filiales/${SLUG}`).catch(() => null) ,
       api.get(`/filiales/${SLUG}`).catch(() => null)
     ]).then(([pagesRes, filialesRes]) => {
       if (pagesRes?.data?.success) setContent(mergeContent(fallbackContent, pagesRes.data.data));
       else setContent(fallbackContent);
       if (filialesRes?.data?.success) setFilialeData(filialesRes.data.data);
-    }).finally(() => setLoading(false));
+    });
   }, []);
 
   // Polling every 30s
@@ -58,7 +56,6 @@ export default function Fishing() {
     const poll = setInterval(() => {
       Promise.all([
         api.get(`/pages/${SLUG}`).catch(() => null),
-        api.get(`/filiales/${SLUG}`).catch(() => null),
         api.get(`/filiales/${SLUG}`).catch(() => null)
       ]).then(([pagesRes, filialesRes]) => {
         if (pagesRes?.data?.success) setContent(mergeContent(fallbackContent, pagesRes.data.data));
@@ -85,7 +82,15 @@ export default function Fishing() {
     }
   };
 
-  const services: any[] = content?.services ? JSON.parse(content.services) : fallbackServices;
+  let services: any[] = fallbackServices;
+  if (content?.services) {
+    try {
+      const parsed = JSON.parse(content.services);
+      if (Array.isArray(parsed) && parsed.length > 0) services = parsed;
+    } catch {
+      services = fallbackServices;
+    }
+  }
 
   useEffect(() => {
     const ctx = gsap.context(() => {
@@ -279,11 +284,11 @@ export default function Fishing() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                       <div className="space-y-2">
                         <label className="text-xs uppercase tracking-widest text-gray-500">Nom / Centrale d'achat</label>
-                        <Input required placeholder="Votre entité" className="border-gray-200" />
+                        <Input required placeholder="Votre entité" value={formData.nom_complet} onChange={(e) => setFormData({ ...formData, nom_complet: e.target.value })} className="border-gray-200" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs uppercase tracking-widest text-gray-500">Email acheteur</label>
-                        <Input required type="email" placeholder="contact@..." className="border-gray-200" />
+                        <Input required type="email" placeholder="contact@..." value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} className="border-gray-200" />
                       </div>
                     </div>
                     
@@ -299,14 +304,14 @@ export default function Fishing() {
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs uppercase tracking-widest text-gray-500">Volume souhaité (Tonnage)</label>
-                        <Input placeholder="Ex: 50 Tonnes / mois" className="border-gray-200" />
+                        <Input placeholder="Ex: 50 Tonnes / mois" value={formData.objet} onChange={(e) => setFormData({ ...formData, objet: e.target.value })} className="border-gray-200" />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                       <div className="space-y-2">
                         <label className="text-xs uppercase tracking-widest text-gray-500">Destination (Pays/Port)</label>
-                        <Input required placeholder="Ex: Port de Valence, Espagne" className="border-gray-200" />
+                        <Input required placeholder="Ex: Port de Valence, Espagne" value={formData.telephone} onChange={(e) => setFormData({ ...formData, telephone: e.target.value })} className="border-gray-200" />
                       </div>
                       <div className="space-y-2">
                         <label className="text-xs uppercase tracking-widest text-gray-500">Incoterm Souhaité</label>
@@ -323,6 +328,8 @@ export default function Fishing() {
                       <textarea
                         required
                         rows={3}
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                         className="flex w-full rounded-sm border border-gray-200 bg-white px-3 py-2 text-sm text-black focus:outline-none focus:border-primary"
                         placeholder="Précisez le calibre attendu, type de conditionnement (cartons, blocs)..."
                       />

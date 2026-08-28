@@ -72,6 +72,7 @@ export default function Contact() {
   const adresse = c.adresse || settings.contact_address || FALLBACK.adresse;
   const telephone = c.telephone || settings.contact_phone || FALLBACK.telephone;
   const email = c.email || settings.contact_email || FALLBACK.email;
+  const emails = email.split(/[;,\n]+/).map((item: string) => item.trim()).filter(Boolean);
   const horaires = c.horaires || FALLBACK.horaires;
 
   return (
@@ -143,7 +144,9 @@ export default function Contact() {
                     <Mail className="text-primary" size={20} strokeWidth={1.5} />
                   </div>
                   <h4 className="text-white font-serif text-lg mb-2">Adresse Email</h4>
-                  <p className="text-white/60 font-light text-sm">{email}</p>
+                  <div className="space-y-1">
+                    {emails.map((item: string) => <p key={item} className="text-white/60 font-light text-sm">{item}</p>)}
+                  </div>
                 </div>
               </div>
 

@@ -21,7 +21,10 @@ export default function MenuCommande() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.get('/restauration/menu').then((response) => setProducts(response.data?.data?.length ? response.data.data : fallbackProducts)).catch(() => setProducts(fallbackProducts)).finally(() => setLoading(false));
+    const load = () => api.get('/restauration/menu').then((response) => setProducts(response.data?.data?.length ? response.data.data : fallbackProducts)).catch(() => setProducts(fallbackProducts)).finally(() => setLoading(false));
+    load();
+    const timer = window.setInterval(load, 30000);
+    return () => window.clearInterval(timer);
   }, []);
 
 

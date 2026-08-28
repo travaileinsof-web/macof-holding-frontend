@@ -50,6 +50,16 @@ export function useRealtimeSync() {
           if (data?.entity) {
             console.log(`[Realtime Sync] Invalidating: ${data.entity}`);
             queryClient.invalidateQueries({ queryKey: [data.entity] });
+            const aliases: Record<string, string[]> = {
+              galerie: ['galerieData'],
+              catalogues: ['catalogues'],
+              restauration: ['restaurationMenu'],
+              pages: ['pages'],
+              settings: ['settings'],
+            };
+            for (const key of aliases[data.entity] || []) {
+              queryClient.invalidateQueries({ queryKey: [key] });
+            }
 
             if (data.entity === 'pages' || data.entity === 'filiales') {
               queryClient.invalidateQueries({ queryKey: ['contactData'] });

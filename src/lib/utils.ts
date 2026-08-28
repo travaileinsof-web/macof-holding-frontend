@@ -12,8 +12,9 @@ export const getImageUrl = (src: string | undefined | null) => {
     if (src.startsWith('http') || src.startsWith('data:') || src.startsWith('blob:')) return src;
     const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002';
     const cleanBaseUrl = baseUrl.replace(/\/$/, '');
+    const apiOrigin = cleanBaseUrl.replace(/\/api\/v1\/?$/, '');
     const cleanPath = src.startsWith('/') ? src : `/${src}`;
-    return `${cleanBaseUrl}${cleanPath.startsWith('/uploads') ? cleanPath : `/uploads${cleanPath}`}`;
+    return `${apiOrigin}${cleanPath.startsWith('/uploads') ? cleanPath : `/uploads${cleanPath}`}`;
 };
 
 export const mergeContent = (fallback: any, fetched: any) => {

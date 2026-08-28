@@ -117,7 +117,7 @@ export default function TemoignagesManager() {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       if (uploadRes.data.success) {
-        handleChange(id, 'avatar_url', uploadRes.data.data.filename);
+        handleChange(id, 'avatar_url', uploadRes.data.data.url);
       } else {
         alert('Erreur lors du téléchargement de l\'image.');
       }
