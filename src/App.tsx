@@ -1,49 +1,57 @@
-import { BrowserRouter, Routes, Route, useLocation, Outlet, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
-import Lenis from '@studio-freight/lenis';
-import { AnimatePresence } from 'framer-motion';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Toaster } from 'sonner';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  useLocation,
+  Outlet,
+  Navigate,
+} from "react-router-dom";
+import { useEffect } from "react";
+import Lenis from "@studio-freight/lenis";
+import { AnimatePresence } from "framer-motion";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Toaster } from "sonner";
 
-import { Navbar } from './components/layout/Navbar';
-import { Footer } from './components/layout/Footer';
+import { Navbar } from "./components/layout/Navbar";
+import { Footer } from "./components/layout/Footer";
 
-import Home from './pages/Home';
-import About from './pages/About';
-import Domaines from './pages/Domaines';
-import Galerie from './pages/Galerie';
-import Contact from './pages/Contact';
-import Catalogues from './pages/Catalogues';
+import Home from "./pages/Home";
+import About from "./pages/About";
+import Domaines from "./pages/Domaines";
+import Galerie from "./pages/Galerie";
+import Contact from "./pages/Contact";
+import Catalogues from "./pages/Catalogues";
 
-import Immobilier from './pages/filiales/Immobilier';
-import Restauration from './pages/filiales/Restauration';
-import Transit from './pages/filiales/Transit';
-import Mining from './pages/filiales/Mining';
-import Fishing from './pages/filiales/Fishing';
-import Print from './pages/filiales/Print';
+import Immobilier from "./pages/filiales/Immobilier";
+import Restauration from "./pages/filiales/Restauration";
+import Transit from "./pages/filiales/Transit";
+import Mining from "./pages/filiales/Mining";
+import Fishing from "./pages/filiales/Fishing";
+import Print from "./pages/filiales/Print";
 
-import Login from './pages/admin/Login';
-import DashboardLayout from './pages/admin/DashboardLayout';
-import Dashboard from './pages/admin/Dashboard';
-import Leads from './pages/admin/Leads';
-import GalerieManager from './pages/admin/GalerieManager';
-import CataloguesManager from './pages/admin/CataloguesManager';
-import FilialesManager from './pages/admin/FilialesManager';
-import PagesEditor from './pages/admin/PagesEditor';
-import Settings from './pages/admin/Settings';
-import StatsManager from './pages/admin/StatsManager';
-import PartenairesManager from './pages/admin/PartenairesManager';
-import TemoignagesManager from './pages/admin/TemoignagesManager';
-import RealisationsManager from './pages/admin/RealisationsManager';
-import RestaurationManager from './pages/admin/RestaurationManager';
-import ProductDetails from './pages/filiales/ProductDetails';
-import Checkout from './pages/filiales/Checkout';
-import { CartProvider } from './components/restauration/CartContext';
+import Login from "./pages/admin/Login";
+import DashboardLayout from "./pages/admin/DashboardLayout";
+import Dashboard from "./pages/admin/Dashboard";
+import Leads from "./pages/admin/Leads";
+import GalerieManager from "./pages/admin/GalerieManager";
+import CataloguesManager from "./pages/admin/CataloguesManager";
+import FilialesManager from "./pages/admin/FilialesManager";
+import PagesEditor from "./pages/admin/PagesEditor";
+import Settings from "./pages/admin/Settings";
+import StatsManager from "./pages/admin/StatsManager";
+import PartenairesManager from "./pages/admin/PartenairesManager";
+import TemoignagesManager from "./pages/admin/TemoignagesManager";
+import RealisationsManager from "./pages/admin/RealisationsManager";
+import ProductDetails from "./pages/filiales/ProductDetails";
+import Checkout from "./pages/filiales/Checkout";
+import { CartProvider } from "./components/restauration/CartContext";
 
-import { AnimatedPage } from './components/layout/AnimatedPage';
-import { useRealtimeSync } from './hooks/useRealtimeSync';
-import NotFound from './components/NotFound';
+import { AnimatedPage } from "./components/layout/AnimatedPage";
+import { useRealtimeSync } from "./hooks/useRealtimeSync";
+import NotFound from "./components/NotFound";
+import MenuCommandesPage from "./components/restauration/MenuCommande";
+import MenuProduitsPage from "./pages/admin/RestaurationManager";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -54,10 +62,11 @@ ScrollTrigger.defaults({
 // ─── Guard Authentification Admin ──────────────────────────────────────────
 
 function AdminRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('admin_token');
+  const token = localStorage.getItem("admin_token");
   const location = useLocation();
 
-  const isLoginPage = location.pathname === '/admin' || location.pathname === '/admin/login';
+  const isLoginPage =
+    location.pathname === "/admin" || location.pathname === "/admin/login";
 
   if (!token && !isLoginPage) {
     return <Navigate to="/admin/login" replace />;
@@ -87,30 +96,135 @@ function AnimatedRoutes() {
     <AnimatePresence
       mode="wait"
       onExitComplete={() => {
-        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+        window.scrollTo({ top: 0, left: 0, behavior: "instant" });
         ScrollTrigger.refresh();
       }}
     >
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<AnimatedPage><Home /></AnimatedPage>} />
-        <Route path="/about" element={<AnimatedPage><About /></AnimatedPage>} />
-        <Route path="/domaines" element={<AnimatedPage><Domaines /></AnimatedPage>} />
-        <Route path="/galerie" element={<AnimatedPage><Galerie /></AnimatedPage>} />
-        <Route path="/catalogues" element={<AnimatedPage><Catalogues /></AnimatedPage>} />
-        <Route path="/contact" element={<AnimatedPage><Contact /></AnimatedPage>} />
+        <Route
+          path="/"
+          element={
+            <AnimatedPage>
+              <Home />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/about"
+          element={
+            <AnimatedPage>
+              <About />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/domaines"
+          element={
+            <AnimatedPage>
+              <Domaines />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/galerie"
+          element={
+            <AnimatedPage>
+              <Galerie />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/catalogues"
+          element={
+            <AnimatedPage>
+              <Catalogues />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/contact"
+          element={
+            <AnimatedPage>
+              <Contact />
+            </AnimatedPage>
+          }
+        />
 
         {/* Filiales */}
-        <Route path="/immobilier" element={<AnimatedPage><Immobilier /></AnimatedPage>} />
-        <Route path="/restauration" element={<AnimatedPage><Restauration /></AnimatedPage>} />
-        <Route path="/restauration/produit/:id" element={<AnimatedPage><ProductDetails /></AnimatedPage>} />
-        <Route path="/checkout" element={<AnimatedPage><Checkout /></AnimatedPage>} />
-        <Route path="/transit" element={<AnimatedPage><Transit /></AnimatedPage>} />
-        <Route path="/mining" element={<AnimatedPage><Mining /></AnimatedPage>} />
-        <Route path="/fishing" element={<AnimatedPage><Fishing /></AnimatedPage>} />
-        <Route path="/print" element={<AnimatedPage><Print /></AnimatedPage>} />
+        <Route
+          path="/immobilier"
+          element={
+            <AnimatedPage>
+              <Immobilier />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/restauration"
+          element={
+            <AnimatedPage>
+              <Restauration />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/restauration/produit/:id"
+          element={
+            <AnimatedPage>
+              <ProductDetails />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/checkout"
+          element={
+            <AnimatedPage>
+              <Checkout />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/transit"
+          element={
+            <AnimatedPage>
+              <Transit />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/mining"
+          element={
+            <AnimatedPage>
+              <Mining />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/fishing"
+          element={
+            <AnimatedPage>
+              <Fishing />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/print"
+          element={
+            <AnimatedPage>
+              <Print />
+            </AnimatedPage>
+          }
+        />
 
         {/* Page 404 pour les URLs publiques inconnues */}
-        <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
+        <Route
+          path="*"
+          element={
+            <AnimatedPage>
+              <NotFound />
+            </AnimatedPage>
+          }
+        />
       </Routes>
     </AnimatePresence>
   );
@@ -139,8 +253,8 @@ function App() {
     const lenis = new Lenis({
       duration: 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
+      orientation: "vertical",
+      gestureOrientation: "vertical",
       smoothWheel: true,
       wheelMultiplier: 1,
       touchMultiplier: 2,
@@ -153,7 +267,7 @@ function App() {
     }
     rafId = requestAnimationFrame(raf);
 
-    lenis.on('scroll', ScrollTrigger.update);
+    lenis.on("scroll", ScrollTrigger.update);
     gsap.ticker.add((time) => lenis.raf(time * 1000));
     gsap.ticker.lagSmoothing(0);
 
@@ -167,30 +281,35 @@ function App() {
     <BrowserRouter>
       <Toaster position="top-right" richColors closeButton />
       <CartProvider>
-      <Routes>
-        {/* Admin routes avec protection */}
-        <Route path="/admin" element={<AdminLayout />}>
-          <Route index element={<Login />} />
-          <Route path="login" element={<Login />} />
-          <Route element={<DashboardLayout />}>
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="demandes" element={<Leads />} />
-            <Route path="galerie" element={<GalerieManager />} />
-            <Route path="catalogues" element={<CataloguesManager />} />
-            <Route path="filiales" element={<FilialesManager />} />
-            <Route path="pages" element={<PagesEditor />} />
-            <Route path="stats" element={<StatsManager />} />
-            <Route path="partenaires" element={<PartenairesManager />} />
-            <Route path="temoignages" element={<TemoignagesManager />} />
-            <Route path="realisations" element={<RealisationsManager />} />
-            <Route path="restauration" element={<RestaurationManager />} />
-            <Route path="settings" element={<Settings />} />
+        <Routes>
+          {/* Admin routes avec protection */}
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Login />} />
+            <Route path="login" element={<Login />} />
+            <Route element={<DashboardLayout />}>
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="demandes" element={<Leads />} />
+              <Route path="galerie" element={<GalerieManager />} />
+              <Route path="catalogues" element={<CataloguesManager />} />
+              <Route path="filiales" element={<FilialesManager />} />
+              <Route path="pages" element={<PagesEditor />} />
+              <Route path="stats" element={<StatsManager />} />
+              <Route path="partenaires" element={<PartenairesManager />} />
+              <Route path="temoignages" element={<TemoignagesManager />} />
+              <Route path="realisations" element={<RealisationsManager />} />
+              {/* <Route path="restauration" element={<RestaurationManager />} /> */}
+              <Route path="menu">
+                <Route index element={<Navigate to="produits" replace />} />
+                <Route path="produits" element={<MenuProduitsPage />} />
+                <Route path="commandes" element={<MenuCommandesPage />} />
+              </Route>
+              <Route path="settings" element={<Settings />} />
+            </Route>
           </Route>
-        </Route>
 
-        {/* Public routes avec layout partagé */}
-        <Route path="/*" element={<PublicLayout />} />
-      </Routes>
+          {/* Public routes avec layout partagé */}
+          <Route path="/*" element={<PublicLayout />} />
+        </Routes>
       </CartProvider>
     </BrowserRouter>
   );

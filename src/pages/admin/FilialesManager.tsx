@@ -123,9 +123,17 @@ export default function FilialesManager() {
       queryClient.invalidateQueries({ queryKey: ['filiales'] });
       closeModal();
     },
-    onError: (err) => {
+    onError: (err: any) => {
       console.error('Erreur sauvegarde:', err);
-      alert('Erreur lors de la sauvegarde de la filiale.');
+
+      if (err?.response?.status === 404) {
+        const message = 'Cette filiale n\'existe plus ou l\'ID est invalide. Rechargez la liste avant de refaire une modification.';
+        alert(message);
+        queryClient.invalidateQueries({ queryKey: ['filiales'] });
+        return;
+      }
+
+      alert(err?.response?.data?.message || 'Erreur lors de la sauvegarde de la filiale.');
     },
   });
 
@@ -205,6 +213,14 @@ export default function FilialesManager() {
 
   const handleSave = () => {
     if (!form.nom) return;
+
+    if (editId && !filiales.some((f) => f.id === editId)) {
+      const message = 'Cette filiale n\'existe plus ou l\'ID est invalide. Rechargez la liste avant de sauvegarder.';
+      alert(message);
+      queryClient.invalidateQueries({ queryKey: ['filiales'] });
+      closeModal();
+      return;
+    }
 
     const formData = new FormData();
     formData.append('nom', form.nom);

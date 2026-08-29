@@ -12,6 +12,8 @@ const fallbackCatalogues = [
   { id: 3, titre: 'Catalogue Restauration', description: 'Nos offres de restauration', filiale: 'MACOF Restauration', file_path: '#' },
 ];
 
+const plaquettePublicUrl = '/plaquette-macof-holding.pdf';
+
 export default function Catalogues() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [selectedDoc, setSelectedDoc] = useState<any | null>(null);
@@ -94,6 +96,25 @@ export default function Catalogues() {
         </div>
 
         {error && <p className="text-red-500 text-center mb-8">Erreur de chargement des catalogues</p>}
+
+        <div className="mb-8 rounded-2xl border border-primary/30 bg-primary/5 p-6 backdrop-blur-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs uppercase tracking-[0.3em] text-blue-200 mb-2">Document officiel</p>
+              <h2 className="text-2xl md:text-3xl font-serif text-white">Plaquette MACOF Holding</h2>
+            </div>
+            <a
+              href={plaquettePublicUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+              className="inline-flex items-center justify-center gap-2 rounded-full border border-primary/60 bg-primary/15 px-5 py-3 text-sm font-medium text-white transition hover:bg-primary hover:text-black"
+            >
+              <Download className="w-4 h-4" />
+              Télécharger le PDF
+            </a>
+          </div>
+        </div>
 
         <div className="space-y-4">
           {documents.map((doc) => (

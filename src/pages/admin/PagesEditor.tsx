@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   RefreshCw,
   Save,
@@ -7,6 +7,18 @@ import {
   FileCode,
   CheckCircle,
   AlertCircle,
+  Home,
+  Info,
+  Building2,
+  UtensilsCrossed,
+  Truck,
+  Mountain,
+  Fish,
+  Printer,
+  Phone,
+  Search,
+  X,
+  Sparkles,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AdminPage } from '../../components/ui/AdminPage';
@@ -24,16 +36,16 @@ interface PageData {
   sections: PageSection[];
 }
 
-const pages: Array<{ label: string; slug: string }> = [
-  { label: 'Accueil', slug: 'home' },
-  { label: 'À propos', slug: 'about' },
-  { label: 'Immobilier', slug: 'immobilier' },
-  { label: 'Restauration', slug: 'restauration' },
-  { label: 'Transit', slug: 'transit' },
-  { label: 'Mining', slug: 'mining' },
-  { label: 'Fishing', slug: 'fishing' },
-  { label: 'Print', slug: 'print' },
-  { label: 'Contact', slug: 'contact' },
+const pages: Array<{ label: string; slug: string; icon: React.ComponentType<{ className?: string }> }> = [
+  { label: 'Accueil', slug: 'home', icon: Home },
+  { label: 'À propos', slug: 'about', icon: Info },
+  { label: 'Immobilier', slug: 'immobilier', icon: Building2 },
+  { label: 'Restauration', slug: 'restauration', icon: UtensilsCrossed },
+  { label: 'Transit', slug: 'transit', icon: Truck },
+  { label: 'Mining', slug: 'mining', icon: Mountain },
+  { label: 'Fishing', slug: 'fishing', icon: Fish },
+  { label: 'Print', slug: 'print', icon: Printer },
+  { label: 'Contact', slug: 'contact', icon: Phone },
 ];
 
 function toReadableLabel(key: string): string {
@@ -43,12 +55,19 @@ function toReadableLabel(key: string): string {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-const typeIcons: Record<string, React.ReactNode> = {
-  text: <FileText className="h-3.5 w-3.5" />,
-  html: <FileCode className="h-3.5 w-3.5" />,
-  image: <ImageIcon className="h-3.5 w-3.5" />,
-  json: <FileText className="h-3.5 w-3.5" />,
-};
+// Regroupe les sections par nature plutôt que de les empiler à plat —
+// on retrouve plus vite "toutes les images" ou "tout le texte" d'une page.
+const sectionGroups: Array<{
+  key: string;
+  label: string;
+  hint: string;
+  types: PageSection['type'][];
+  icon: React.ComponentType<{ className?: string }>;
+}> = [
+  { key: 'texte', label: 'Contenu textuel', hint: 'Titres, paragraphes, blocs HTML', types: ['text', 'html'], icon: FileText },
+  { key: 'media', label: 'Visuels', hint: 'Images affichées sur la page', types: ['image'], icon: ImageIcon },
+  { key: 'donnees', label: 'Données structurées', hint: 'Listes ou objets au format JSON', types: ['json'], icon: FileCode },
+];
 
 const typeLabels: Record<string, string> = {
   text: 'Texte',
@@ -63,18 +82,21 @@ export default function PagesEditor() {
   const [loading, setLoading] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  
+  const [sectionSearch, setSectionSearch] = useState('');
+
   const imageInputRefs = useRef<Record<string, HTMLInputElement | null>>({});
   const previewUrlsRef = useRef<string[]>([]);
+  // Copie des valeurs telles que chargées depuis l'API, pour savoir quelles
+  // sections ont réellement été modifiées depuis (et activer "Sauvegarder"
+  // seulement quand c'est pertinent, plutôt que systématiquement).
+  const originalValuesRef = useRef<Record<string, string>>({});
 
-  // Nettoyage des URL de prévisualisation locales d'images
   useEffect(() => {
     return () => {
       previewUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     };
   }, []);
 
-  // Timer de notification
   useEffect(() => {
     if (notification) {
       const timer = setTimeout(() => setNotification(null), 3000);
@@ -87,7 +109,12 @@ export default function PagesEditor() {
     try {
       const res = await api.get(`/api/v1/admin/pages/${slug}`);
       if (res.data?.success) {
-        setPageData(res.data.data || null);
+        const data: PageData | null = res.data.data || null;
+        setPageData(data);
+        originalValuesRef.current = {};
+        data?.sections?.forEach((s) => {
+          originalValuesRef.current[s.key] = s.value || '';
+        });
       } else {
         setPageData(null);
       }
@@ -105,15 +132,11 @@ export default function PagesEditor() {
 
   useEffect(() => {
     let canceled = false;
-
+    setSectionSearch('');
     const load = async () => {
-      if (!canceled) {
-        await fetchPage(selectedPage);
-      }
+      if (!canceled) await fetchPage(selectedPage);
     };
-
     load();
-
     return () => {
       canceled = true;
     };
@@ -135,7 +158,6 @@ export default function PagesEditor() {
       const section = pageData.sections?.find((s) => s.key === key);
       if (!section) return;
 
-      // Validation JSON
       if (section.type === 'json' && section.value) {
         try {
           JSON.parse(section.value);
@@ -163,24 +185,20 @@ export default function PagesEditor() {
           content_type: imageFile ? 'image' : section.type,
         }],
       });
-      
+
       if (res.data?.success) {
-        // Mise à jour ciblée du state avec l'URL finale renvoyée par le backend (Vercel Blob / Storage local)
         setPageData((prev) => {
           if (!prev) return null;
           return {
             ...prev,
             sections: prev.sections.map((s) =>
               s.key === key
-                ? {
-                    ...s,
-                  value,
-                  image_url: imageFile ? value : s.image_url,
-                  }
+                ? { ...s, value, image_url: imageFile ? value : s.image_url }
                 : s
             ),
           };
         });
+        originalValuesRef.current[key] = value;
       }
 
       setNotification({ type: 'success', message: `Section "${toReadableLabel(key)}" sauvegardée.` });
@@ -195,19 +213,12 @@ export default function PagesEditor() {
 
   const handleImageUpload = (key: string, file: File) => {
     if (!pageData) return;
-    
-    // Aperçu local temporaire
     const url = URL.createObjectURL(file);
     previewUrlsRef.current.push(url);
-
     setPageData({
       ...pageData,
-      sections: pageData.sections?.map((s) =>
-        s.key === key ? { ...s, image_url: url } : s
-      ),
+      sections: pageData.sections?.map((s) => (s.key === key ? { ...s, image_url: url } : s)),
     });
-    
-    // Téléversement direct
     saveSection(key, file);
   };
 
@@ -220,6 +231,32 @@ export default function PagesEditor() {
       return false;
     }
   };
+
+  const isDirty = (section: PageSection) => (originalValuesRef.current[section.key] ?? '') !== (section.value || '');
+
+  const currentPageMeta = pages.find((p) => p.slug === selectedPage);
+
+  const filteredSections = useMemo(() => {
+    if (!pageData?.sections) return [];
+    const term = sectionSearch.trim().toLowerCase();
+    if (!term) return pageData.sections;
+    return pageData.sections.filter(
+      (s) => toReadableLabel(s.key).toLowerCase().includes(term) || s.key.toLowerCase().includes(term)
+    );
+  }, [pageData, sectionSearch]);
+
+  const groupedSections = useMemo(
+    () =>
+      sectionGroups
+        .map((group) => ({
+          ...group,
+          sections: filteredSections.filter((s) => group.types.includes(s.type)),
+        }))
+        .filter((group) => group.sections.length > 0),
+    [filteredSections]
+  );
+
+  const dirtyCount = pageData?.sections?.filter(isDirty).length || 0;
 
   const renderSectionInput = (section: PageSection) => {
     switch (section.type) {
@@ -247,15 +284,16 @@ export default function PagesEditor() {
       case 'image':
         return (
           <div className="space-y-3">
-            {section.image_url && (
-              <div className="rounded-lg overflow-hidden border border-slate-700 max-w-md">
-                <img
-                  src={section.image_url}
-                  alt={section.key}
-                  className="max-h-48 object-cover w-full"
-                />
-              </div>
-            )}
+            <div className="rounded-lg overflow-hidden border border-slate-700 bg-slate-900/50 aspect-video flex items-center justify-center">
+              {section.image_url ? (
+                <img src={section.image_url} alt={section.key} className="w-full h-full object-cover" />
+              ) : (
+                <div className="text-slate-600 flex flex-col items-center gap-2 text-xs">
+                  <ImageIcon className="h-8 w-8" />
+                  Aucune image
+                </div>
+              )}
+            </div>
             <input
               ref={(el) => {
                 imageInputRefs.current[section.key] = el;
@@ -279,9 +317,7 @@ export default function PagesEditor() {
           <div>
             <div className="flex justify-between items-center mb-1">
               <p className="text-xs text-slate-500">Format JSON valide (tableau ou objet)</p>
-              {!valid && (
-                <span className="text-xs text-red-400 font-medium">JSON invalide</span>
-              )}
+              {!valid && <span className="text-xs text-red-400 font-medium">JSON invalide</span>}
             </div>
             <textarea
               value={section.value || ''}
@@ -300,128 +336,184 @@ export default function PagesEditor() {
   };
 
   return (
-    <AdminPage className="flex gap-6 min-h-[calc(100vh-7rem)]">
-      {/* Page Sidebar */}
-      <div className="w-64 flex-shrink-0">
-        <h3 className="text-sm font-semibold text-slate-300 uppercase tracking-wider mb-3">Pages</h3>
-        <div className="bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden">
-          <nav className="divide-y divide-slate-700">
-            {pages.map((p) => (
+    <AdminPage>
+      <div className="space-y-6">
+        {/* Onglets de pages — navigation horizontale par secteur, avec icône
+            reconnaissable pour chaque activité du groupe. */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {pages.map((p) => {
+            const Icon = p.icon;
+            const isActive = selectedPage === p.slug;
+            return (
               <button
                 key={p.slug}
                 onClick={() => setSelectedPage(p.slug)}
-                className={`w-full text-left px-4 py-3 text-sm transition-colors ${
-                  selectedPage === p.slug
-                    ? 'bg-[#cda434]/10 text-[#cda434] font-medium'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors border ${
+                  isActive
+                    ? 'bg-[#cda434] text-slate-900 border-[#cda434]'
+                    : 'bg-[#1e293b] text-slate-400 border-slate-700 hover:text-slate-200 hover:border-slate-600'
                 }`}
               >
+                <Icon className="h-4 w-4" />
                 {p.label}
               </button>
-            ))}
-          </nav>
+            );
+          })}
         </div>
-      </div>
 
-      {/* Content Area */}
-      <div className="flex-1 space-y-6">
-        {/* Notification */}
-        {notification && (
-          <div
-            className={`flex items-center gap-2 px-4 py-3 rounded-lg border text-sm ${
-              notification.type === 'success'
-                ? 'bg-green-500/10 border-green-500/30 text-green-400'
-                : 'bg-red-500/10 border-red-500/30 text-red-400'
-            }`}
-          >
-            {notification.type === 'success' ? (
-              <CheckCircle className="h-4 w-4 flex-shrink-0" />
-            ) : (
-              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+        {/* En-tête de la page sélectionnée */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-[#1e293b] border border-slate-700 rounded-lg px-5 py-4">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-[#cda434]/10 flex items-center justify-center text-[#cda434] flex-shrink-0">
+              {currentPageMeta && <currentPageMeta.icon className="h-5 w-5" />}
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-slate-200">{currentPageMeta?.label || selectedPage}</h2>
+              <p className="text-slate-500 text-xs mt-0.5">
+                {pageData?.sections?.length || 0} section{(pageData?.sections?.length || 0) > 1 ? 's' : ''}
+                {dirtyCount > 0 && (
+                  <span className="text-amber-400 ml-2 inline-flex items-center gap-1">
+                    <Sparkles className="h-3 w-3" /> {dirtyCount} modification{dirtyCount > 1 ? 's' : ''} non enregistrée{dirtyCount > 1 ? 's' : ''}
+                  </span>
+                )}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {pageData?.sections && pageData.sections.length > 3 && (
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-500" />
+                <input
+                  type="text"
+                  value={sectionSearch}
+                  onChange={(e) => setSectionSearch(e.target.value)}
+                  placeholder="Rechercher une section..."
+                  className="bg-slate-800 border border-slate-600 rounded-lg pl-9 pr-8 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-500 transition-colors w-56"
+                />
+                {sectionSearch && (
+                  <button
+                    onClick={() => setSectionSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
             )}
-            {notification.message}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                fetchPage(selectedPage);
+              }}
+              className="text-slate-400 hover:text-slate-200 transition-colors p-2 rounded-lg hover:bg-slate-800 flex-shrink-0"
+              title="Rafraîchir"
+            >
+              <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            </button>
           </div>
-        )}
-
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-200">
-              {pages.find((p) => p.slug === selectedPage)?.label || selectedPage}
-            </h2>
-            <p className="text-slate-400 text-sm mt-1">Éditez les sections de la page.</p>
-          </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              fetchPage(selectedPage);
-            }}
-            className="text-slate-400 hover:text-slate-200 transition-colors p-2 rounded-lg hover:bg-slate-800"
-            title="Rafraîchir"
-          >
-            <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-          </button>
         </div>
 
-        {/* Sections */}
+        {/* Contenu */}
         {loading && !pageData ? (
           <div className="flex items-center justify-center h-64">
             <RefreshCw className="h-8 w-8 text-[#cda434] animate-spin" />
           </div>
         ) : !pageData?.sections || pageData.sections.length === 0 ? (
-          <div className="text-center py-12 text-slate-500 bg-[#1e293b] border border-slate-700 rounded-lg">
+          <div className="text-center py-16 text-slate-500 bg-[#1e293b] border border-slate-700 rounded-lg">
+            <FileText className="h-10 w-10 mx-auto mb-3 opacity-40" />
             <p>Aucune section disponible pour cette page.</p>
           </div>
+        ) : filteredSections.length === 0 ? (
+          <div className="text-center py-16 text-slate-500 bg-[#1e293b] border border-slate-700 rounded-lg">
+            <Search className="h-10 w-10 mx-auto mb-3 opacity-40" />
+            <p>Aucune section ne correspond à "{sectionSearch}".</p>
+          </div>
         ) : (
-          <div className="space-y-4">
-            {pageData.sections.map((section) => (
-              <div
-                key={section.key}
-                className="bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden"
-              >
-                <div className="flex items-center justify-between px-5 py-3 bg-slate-800/50 border-b border-slate-700">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400">{typeIcons[section.type]}</span>
-                    <h3 className="text-sm font-medium text-slate-200">
-                      {toReadableLabel(section.key)}
-                    </h3>
-                    <span className="text-xs bg-slate-700 text-slate-400 rounded-full px-2 py-0.5">
-                      {typeLabels[section.type] || section.type}
-                    </span>
-                  </div>
-                  {section.type !== 'image' && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        saveSection(section.key);
-                      }}
-                      disabled={savingKey === section.key}
-                      className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
-                    >
-                      {savingKey === section.key ? (
-                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Save className="h-3.5 w-3.5" />
-                      )}
-                      {savingKey === section.key ? 'Sauvegarde...' : 'Sauvegarder'}
-                    </button>
-                  )}
-                  {section.type === 'image' && savingKey === section.key && (
-                    <span className="inline-flex items-center gap-1 text-xs text-amber-400">
-                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Transfert...
-                    </span>
-                  )}
+          <div className="space-y-8">
+            {groupedSections.map((group) => (
+              <div key={group.key}>
+                <div className="flex items-center gap-2 mb-3">
+                  <group.icon className="h-4 w-4 text-slate-500" />
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-500">{group.label}</h3>
+                  <span className="text-xs text-slate-600">— {group.hint}</span>
                 </div>
-                <div className="p-5">
-                  {renderSectionInput(section)}
+
+                <div className={group.key === 'media' ? 'grid grid-cols-1 md:grid-cols-2 gap-4' : 'space-y-4'}>
+                  {group.sections.map((section) => {
+                    const dirty = isDirty(section);
+                    return (
+                      <div
+                        key={section.key}
+                        className={`bg-[#1e293b] border rounded-lg overflow-hidden transition-colors ${
+                          dirty ? 'border-amber-500/50' : 'border-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between px-5 py-3 bg-slate-800/50 border-b border-slate-700">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <h4 className="text-sm font-medium text-slate-200 truncate">{toReadableLabel(section.key)}</h4>
+                            <span className="text-xs bg-slate-700 text-slate-400 rounded-full px-2 py-0.5 flex-shrink-0">
+                              {typeLabels[section.type] || section.type}
+                            </span>
+                            {dirty && (
+                              <span className="text-xs bg-amber-500/10 text-amber-400 rounded-full px-2 py-0.5 flex-shrink-0">
+                                Non enregistré
+                              </span>
+                            )}
+                          </div>
+                          {section.type !== 'image' && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                saveSection(section.key);
+                              }}
+                              disabled={savingKey === section.key || !dirty}
+                              className="inline-flex items-center gap-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-colors flex-shrink-0"
+                            >
+                              {savingKey === section.key ? (
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Save className="h-3.5 w-3.5" />
+                              )}
+                              {savingKey === section.key ? 'Sauvegarde...' : 'Sauvegarder'}
+                            </button>
+                          )}
+                          {section.type === 'image' && savingKey === section.key && (
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-400 flex-shrink-0">
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Transfert...
+                            </span>
+                          )}
+                        </div>
+                        <div className="p-5">{renderSectionInput(section)}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Notification flottante — ne pousse plus le contenu de la page */}
+      {notification && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-lg border text-sm shadow-2xl ${
+            notification.type === 'success'
+              ? 'bg-green-500/10 border-green-500/30 text-green-400'
+              : 'bg-red-500/10 border-red-500/30 text-red-400'
+          }`}
+        >
+          {notification.type === 'success' ? (
+            <CheckCircle className="h-4 w-4 flex-shrink-0" />
+          ) : (
+            <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          )}
+          {notification.message}
+        </div>
+      )}
     </AdminPage>
   );
 }

@@ -1,41 +1,205 @@
-import { useEffect, useState } from 'react';
-import { Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { ImageOff } from 'lucide-react';
 import { api } from '../../lib/api';
-import { getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
-import { useCart } from './CartContext';
-import type { Product } from './CartContext';
+import { AdminPage } from '../../components/ui/AdminPage';
+import { useInfiniteReveal } from '../../hooks/useInfiniteReveal';
 
+type OrderItem = {
+  nom: string;
+  image_url?: string;
+  quantite: number;
+};
 
-const fallbackProducts: Product[] = [
-  { id: -1, nom: 'Boulangerie & Pâtisserie', description: 'Pains artisanaux, viennoiseries et créations fraîches du jour.', categorie: 'boulangerie', prix_gnf: 0, image_url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=1000&auto=format&fit=crop' },
-  { id: -2, nom: 'Plats SEBA', description: 'Cuisine généreuse et raffinée, préparée par nos chefs.', categorie: 'plats', prix_gnf: 0, image_url: 'https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop' },
-  { id: -3, nom: 'Boissons & Cocktails', description: 'Jus pressés, boissons fraîches et cocktails sans alcool.', categorie: 'boissons', prix_gnf: 0, image_url: 'https://images.unsplash.com/photo-1544145945-f90425340c7e?q=80&w=1000&auto=format&fit=crop' },
-];
+type Order = {
+  id: number;
+  reference: string;
+  nom_client: string;
+  telephone: string;
+  quartier: string;
+  ville: string;
+  total_gnf: number;
+  acompte_gnf: number;
+  reste_gnf: number;
+  statut: string;
+  statut_paiement: string;
+  // Optionnel : nécessite que GET /commandes renvoie les articles de chaque
+  // commande avec leur image_url (jointe depuis le produit). Si absent,
+  // la colonne "Articles" affiche simplement un tiret.
+  items?: OrderItem[];
+};
 
-const formatPrice = (value: number) => `${new Intl.NumberFormat('fr-FR').format(value)} GNF`;
+const orderStatuses = ['en_attente', 'confirmee', 'en_preparation', 'en_livraison', 'livree', 'annulee'];
+const paymentStatuses = ['a_payer', 'en_attente', 'partiel', 'paye', 'echec'];
+const money = (value: number) => `${new Intl.NumberFormat('fr-FR').format(value)} GNF`;
 
-export default function MenuCommande() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const { items, add } = useCart();
+function Thumb({ src, alt, size = 40 }: { src?: string; alt: string; size?: number }) {
+  const [broken, setBroken] = useState(false);
+  const style = { width: size, height: size };
+  if (!src || broken) {
+    return (
+      <div
+        style={style}
+        className="flex items-center justify-center rounded-md bg-slate-800 border border-slate-700 text-slate-600 flex-shrink-0"
+      >
+        <ImageOff size={size * 0.45} />
+      </div>
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={style}
+      onError={() => setBroken(true)}
+      className="rounded-md object-cover border border-slate-700 flex-shrink-0"
+    />
+  );
+}
+
+function OrderItemsPreview({ items }: { items?: OrderItem[] }) {
+  if (!items || items.length === 0) {
+    return <span className="text-slate-600">—</span>;
+  }
+  const shown = items.slice(0, 3);
+  const extra = items.length - shown.length;
+  return (
+    <div className="flex items-center -space-x-2">
+      {shown.map((item, i) => (
+        <div key={i} title={`${item.nom} × ${item.quantite}`} className="ring-2 ring-[#1e293b] rounded-md">
+          <Thumb src={item.image_url} alt={item.nom} />
+        </div>
+      ))}
+      {extra > 0 && (
+        <div className="ring-2 ring-[#1e293b] rounded-md h-10 w-10 flex items-center justify-center bg-slate-800 border border-slate-700 text-xs text-slate-400">
+          +{extra}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default function MenuCommandesPage() {
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const { visibleItems, visibleCount, total, hasMore, sentinelRef } = useInfiniteReveal(
+    orders,
+    20,
+    scrollRef
+  );
+
+  const load = async () => {
+    const response = await api.get('/api/v1/admin/restauration/commandes');
+    setOrders(response.data.data || []);
+    setLoading(false);
+  };
+
   useEffect(() => {
-    const load = () => api.get('/restauration/menu').then((response) => setProducts(response.data?.data?.length ? response.data.data : fallbackProducts)).catch(() => setProducts(fallbackProducts)).finally(() => setLoading(false));
-    load();
-    const timer = window.setInterval(load, 30000);
-    return () => window.clearInterval(timer);
+    load().catch(() => setLoading(false));
   }, []);
 
+  const updateOrder = async (id: number, field: 'statut' | 'statut_paiement', value: string) => {
+    await api.put(
+      `/api/v1/admin/restauration/commandes/${id}/${field === 'statut' ? 'statut' : 'paiement'}`,
+      { [field]: value }
+    );
+    await load();
+  };
 
   return (
-    <section id="menu-commande" className="py-28 bg-[#0b0b0b] border-y border-white/10">
-      <div className="max-w-7xl mx-auto px-6 lg:px-12">
-        <div className="mb-14"><p className="text-xs tracking-[0.3em] uppercase text-red-200 mb-4">SEBA à votre table</p><h2 className="text-4xl md:text-6xl font-serif text-white">Découvrez notre menu</h2><p className="mt-5 text-white/60 max-w-xl">Choisissez vos plats, indiquez votre adresse partout en Guinée et recevez votre commande à l’endroit souhaité.</p></div>
-        {loading ? <p className="text-white/60">Chargement du menu...</p> : <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {products.map((product) => <article key={product.id} className="border border-white/10 bg-white/[0.03] overflow-hidden group"><Link to={`/restauration/produit/${product.id}`}><img src={getImageUrl(product.image_url || undefined)} alt={product.nom} className="w-full h-52 object-cover group-hover:scale-105 transition-transform duration-700" onError={(event) => { event.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }} /><div className="p-5"><p className="text-xs uppercase tracking-widest text-red-200 mb-2">{product.categorie}</p><h3 className="text-2xl font-serif text-white">{product.nom}</h3><p className="text-sm text-white/60 mt-2 min-h-10">{product.description}</p></div></Link><div className="px-5 pb-5 flex items-center justify-between"><strong className="text-white">{formatPrice(product.prix_gnf)}</strong><button type="button" aria-label={`Ajouter ${product.nom}`} onClick={() => add(product)} className="inline-flex items-center gap-2 border border-red-300 px-3 py-2 text-xs uppercase tracking-widest text-red-200"><Plus size={15} /> Ajouter</button></div></article>)}
-        </div>}
+    <AdminPage loading={loading}>
+      <div className="space-y-6 text-slate-200">
+        <div>
+          <h2 className="text-2xl font-bold">Commandes</h2>
+          <p className="text-slate-400 text-sm mt-1">Livraison, paiement et suivi opérationnel.</p>
+        </div>
+
+        <section className="bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden">
+          <div className="p-5 border-b border-slate-700 flex items-center justify-between">
+            <h3 className="font-semibold">Commandes reçues</h3>
+            <span className="text-xs text-slate-500">
+              {visibleCount} sur {total}
+            </span>
+          </div>
+
+          <div ref={scrollRef} className="overflow-y-auto overflow-x-auto max-h-[65vh]">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-800/50 text-slate-400 sticky top-0">
+                <tr>
+                  <th className="p-4 text-left">Articles</th>
+                  <th className="p-4 text-left">Commande / client</th>
+                  <th className="p-4 text-left">Livraison</th>
+                  <th className="p-4 text-left">Total</th>
+                  <th className="p-4 text-left">Commande</th>
+                  <th className="p-4 text-left">Paiement</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-700">
+                {visibleItems.map((order) => (
+                  <tr key={order.id}>
+                    <td className="p-4">
+                      <OrderItemsPreview items={order.items} />
+                    </td>
+                    <td className="p-4">
+                      <strong>{order.reference}</strong>
+                      <br />
+                      {order.nom_client}
+                      <br />
+                      <span className="text-slate-400">{order.telephone}</span>
+                    </td>
+                    <td className="p-4">
+                      {order.quartier}, {order.ville}
+                    </td>
+                    <td className="p-4">
+                      {money(order.total_gnf)}
+                      <br />
+                      <span className="text-xs text-slate-400">
+                        Acompte {money(order.acompte_gnf)} / reste {money(order.reste_gnf)}
+                      </span>
+                    </td>
+                    <td className="p-4">
+                      <select
+                        value={order.statut}
+                        onChange={(e) => updateOrder(order.id, 'statut', e.target.value)}
+                        className="bg-slate-800 border border-slate-600 p-2 rounded"
+                      >
+                        {orderStatuses.map((status) => (
+                          <option key={status}>{status}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td className="p-4">
+                      <select
+                        value={order.statut_paiement}
+                        onChange={(e) => updateOrder(order.id, 'statut_paiement', e.target.value)}
+                        className="bg-slate-800 border border-slate-600 p-2 rounded"
+                      >
+                        {paymentStatuses.map((status) => (
+                          <option key={status}>{status}</option>
+                        ))}
+                      </select>
+                    </td>
+                  </tr>
+                ))}
+                {orders.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-slate-500">
+                      Aucune commande pour le moment.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+
+            {hasMore && (
+              <div ref={sentinelRef} className="py-4 text-center text-xs text-slate-500">
+                Chargement...
+              </div>
+            )}
+          </div>
+        </section>
       </div>
-    </section>
+    </AdminPage>
   );
 }

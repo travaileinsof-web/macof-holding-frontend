@@ -12,9 +12,6 @@ export const RAW_BASE_URL = cleanBaseUrl.includes("/api/v1")
 
 export const api = axios.create({
   baseURL: RAW_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
 });
 
 // Intercepteur de requêtes
@@ -24,7 +21,18 @@ api.interceptors.request.use((config) => {
     config.url = config.url.replace(/^\/api\/v1/, "");
   }
 
-  // 2. Injection dynamique du token JWT
+  // 2. Multipart upload: on ne force jamais Content-Type JSON pour les FormData
+  if (config.data instanceof FormData) {
+    delete config.headers?.["Content-Type"];
+    delete config.headers?.["content-type"];
+  } else if (!config.headers?.["Content-Type"] && !config.headers?.["content-type"]) {
+    config.headers = {
+      ...config.headers,
+      "Content-Type": "application/json",
+    };
+  }
+
+  // 3. Injection dynamique du token JWT
   const token = localStorage.getItem("admin_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;

@@ -74,20 +74,24 @@ export default function Galerie() {
             <p className="text-white/60 font-sans font-light max-w-2xl mx-auto leading-relaxed text-lg">
               Une sélection visuelle illustrant l'excellence opérationnelle de MACOF Holding à travers ses six pôles d'expertise.
             </p>
-            <Link to="/restauration#menu-commande" className="inline-flex mt-8 px-6 py-3 bg-white text-black text-xs uppercase tracking-[0.2em] hover:bg-red-200 transition-colors">
-              Découvrir le menu SEBA
-            </Link>
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+              <Link to="/restauration#menu-commande" className="inline-flex px-6 py-3 bg-white text-black text-xs uppercase tracking-[0.2em] hover:bg-red-200 transition-colors">
+                Découvrir le menu SEBA
+              </Link>
+              <Link to="/restauration" className="inline-flex px-6 py-3 border border-white/20 bg-white/5 text-white text-xs uppercase tracking-[0.2em] hover:bg-white hover:text-black transition-colors">
+                Voir la page Restauration
+              </Link>
+            </div>
           </div>
 
-          {/* Filtres Interactifs */}
           <div className="flex flex-wrap justify-center gap-2 md:gap-4 mb-16">
-            {filters.map(f => (
+            {filters.map((f) => (
               <button
                 key={f}
                 onClick={() => setActiveFilter(f)}
                 className={`px-5 py-2.5 text-xs font-sans tracking-[0.2em] uppercase transition-all duration-500 rounded-full border ${
-                  activeFilter === f 
-                    ? 'border-white bg-white text-black' 
+                  activeFilter === f
+                    ? 'border-white bg-white text-black'
                     : 'border-white/10 text-white/70 hover:border-white/40 hover:text-white bg-white/[0.02]'
                 }`}
               >
