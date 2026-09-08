@@ -22,6 +22,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { VoiceChatbot } from '@/components/admin/VoiceChatbot';
 
 interface AdminUser {
   name?: string;
@@ -41,8 +42,6 @@ interface NavItem {
   children?: NavChild[];
 }
 
-// Items with `path` are leaf links. Items with `children` render as an
-// expandable group in the sidebar (e.g. "Menu" -> Produits / Commandes).
 const navItems: NavItem[] = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/admin/dashboard' },
   { label: 'Demandes', icon: Mail, path: '/admin/demandes' },
@@ -69,7 +68,7 @@ const pageTitles: Record<string, string> = {
   '/admin/dashboard': 'Dashboard',
   '/admin/demandes': 'Demandes',
   '/admin/filiales': 'Filiales',
-  '/admin/realisations': 'R\u00e9alisations par Filiale',
+  '/admin/realisations': 'Réalisations par Filiale',
   '/admin/menu/produits': 'Produits du menu',
   '/admin/menu/commandes': 'Commandes',
   '/admin/galerie': 'Galerie',
@@ -88,10 +87,6 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminUser, setAdminUser] = useState<AdminUser>({});
   const [showLogoutModal, setShowLogoutModal] = useState(false);
-
-  // Which grouped nav items are expanded. A group auto-opens the first time
-  // the current route falls inside it (see effect below), and the user can
-  // toggle it manually afterwards.
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -106,8 +101,8 @@ export default function DashboardLayout() {
   }, []);
 
   useEffect(() => {
-    const activeGroup = navItems.find(
-      (item) => item.children?.some((child) => location.pathname.startsWith(child.path))
+    const activeGroup = navItems.find((item) =>
+      item.children?.some((child) => location.pathname.startsWith(child.path))
     );
     if (activeGroup && !openGroups[activeGroup.label]) {
       setOpenGroups((prev) => ({ ...prev, [activeGroup.label]: true }));
@@ -155,8 +150,6 @@ export default function DashboardLayout() {
   const toggleGroup = (label: string) =>
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
 
-  // Sum of children badges, shown on the collapsed parent row so counts are
-  // still visible even when the group isn't expanded.
   const groupBadgeTotal = (item: NavItem) =>
     (item.children || []).reduce((sum, child) => sum + (badges[child.path] || 0), 0);
 
@@ -170,7 +163,7 @@ export default function DashboardLayout() {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1e293b] flex flex-col transition-transform duration-300 ease-in-out lg:translate-x-0 lg:static lg:z-auto ${
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#1e293b] flex flex-col transition-transform duration-300 ease-in-out lg:sticky lg:top-0 lg:h-screen lg:z-20 lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
@@ -193,7 +186,6 @@ export default function DashboardLayout() {
           {navItems.map((item) => {
             const Icon = item.icon;
 
-            // --- Leaf item (simple link) ---
             if (item.path) {
               const isActive = location.pathname === item.path;
               const badgeCount = badges[item.path] || 0;
@@ -219,9 +211,10 @@ export default function DashboardLayout() {
               );
             }
 
-            // --- Grouped item (expandable, renders children) ---
             const children = item.children || [];
-            const isGroupActive = children.some((child) => location.pathname.startsWith(child.path));
+            const isGroupActive = children.some((child) =>
+              location.pathname.startsWith(child.path)
+            );
             const isOpen = !!openGroups[item.label];
             const badgeTotal = groupBadgeTotal(item);
 
@@ -237,7 +230,9 @@ export default function DashboardLayout() {
                       : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                   }`}
                 >
-                  <Icon className={`h-5 w-5 flex-shrink-0 ${isGroupActive ? 'text-[#cda434]' : ''}`} />
+                  <Icon
+                    className={`h-5 w-5 flex-shrink-0 ${isGroupActive ? 'text-[#cda434]' : ''}`}
+                  />
                   <span className="flex-1 text-left">{item.label}</span>
                   {badgeTotal > 0 && (
                     <span className="bg-blue-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1.5">
@@ -250,7 +245,6 @@ export default function DashboardLayout() {
                     }`}
                   />
                 </button>
-
                 <div
                   className={`grid transition-all duration-200 ease-in-out ${
                     isOpen ? 'grid-rows-[1fr] opacity-100 mt-1' : 'grid-rows-[0fr] opacity-0'
@@ -301,7 +295,7 @@ export default function DashboardLayout() {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <header className="h-16 bg-[#1e293b] border-b border-slate-700 flex items-center justify-between px-6 flex-shrink-0">
+        <header className="sticky top-0 z-30 h-16 bg-[#1e293b]/95 border-b border-slate-700 backdrop-blur-sm flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setSidebarOpen(true)}
@@ -311,11 +305,16 @@ export default function DashboardLayout() {
             </button>
             <h1 className="text-lg font-semibold text-slate-200">{currentPageTitle}</h1>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-full bg-[#cda434]/20 flex items-center justify-center text-[#cda434] text-sm font-bold">
-              {adminName.charAt(0).toUpperCase()}
+
+          <div className="flex items-center gap-4">
+            <VoiceChatbot />
+            <div className="h-4 w-[1px] bg-slate-700 hidden sm:block" />
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full bg-[#cda434]/20 flex items-center justify-center text-[#cda434] text-sm font-bold">
+                {adminName.charAt(0).toUpperCase()}
+              </div>
+              <span className="text-sm text-slate-400 hidden sm:inline">{adminName}</span>
             </div>
-            <span className="text-sm text-slate-400 hidden sm:inline">{adminName}</span>
           </div>
         </header>
 
