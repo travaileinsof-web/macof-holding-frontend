@@ -3,6 +3,7 @@ import { ImageOff, Pencil, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AdminPage } from '../../components/ui/AdminPage';
 import { useInfiniteReveal } from '../../hooks/useInfiniteReveal';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 type Product = {
   id: number;
@@ -11,6 +12,7 @@ type Product = {
   categorie: string;
   prix_gnf: number;
   image_url?: string;
+  video_url?: string;
   disponible: boolean;
 };
 
@@ -42,6 +44,7 @@ function Thumb({ src, alt, size = 48 }: { src?: string; alt: string; size?: numb
 
 export default function MenuProduitsPage() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Product | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
@@ -51,6 +54,8 @@ export default function MenuProduitsPage() {
     categorie: 'plats',
     prix_gnf: '',
     image: null as File | null,
+    image_url: '',
+    video_url: '',
     disponible: true,
   });
 
@@ -62,8 +67,8 @@ export default function MenuProduitsPage() {
       setPreviewUrl(objectUrl);
       return () => URL.revokeObjectURL(objectUrl);
     }
-    setPreviewUrl(editing?.image_url);
-  }, [form.image, editing]);
+    setPreviewUrl(form.image_url || editing?.image_url);
+  }, [form.image, form.image_url, editing]);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const { visibleItems, visibleCount, total, hasMore, sentinelRef } = useInfiniteReveal(
@@ -90,6 +95,8 @@ export default function MenuProduitsPage() {
       categorie: product?.categorie || 'plats',
       prix_gnf: product ? String(product.prix_gnf) : '',
       image: null,
+      image_url: product?.image_url || '',
+      video_url: product?.video_url || '',
       disponible: product?.disponible ?? true,
     });
     setModalOpen(true);
@@ -104,6 +111,9 @@ export default function MenuProduitsPage() {
     data.append('prix_gnf', form.prix_gnf);
     data.append('disponible', String(form.disponible));
     if (form.image) data.append('image', form.image);
+    if (form.image_url) data.append('image_url', form.image_url);
+    if (form.video_url) data.append('video_url', form.video_url);
+
     if (editing) {
       await api.put(`/api/v1/admin/restauration/menu/${editing.id}`, data);
     } else {
@@ -114,39 +124,35 @@ export default function MenuProduitsPage() {
     await load();
   };
 
-  const remove = async (id: number) => {
-    if (!confirm('Supprimer ce plat ?')) return;
-    await api.delete(`/api/v1/admin/restauration/menu/${id}`);
+  const confirmRemove = async () => {
+    if (!itemToDelete) return;
+    await api.delete(`/api/v1/admin/restauration/menu/${itemToDelete}`);
+    setItemToDelete(null);
     await load();
   };
 
   return (
-    <AdminPage loading={loading}>
-      <div className="space-y-6 text-slate-200">
-        <div className="flex justify-between items-center">
-          <div>
-            <h2 className="text-2xl font-bold">Produits du menu</h2>
-            <p className="text-slate-400 text-sm mt-1">Prix, disponibilité et photos des plats.</p>
-          </div>
-          <button
-            onClick={() => open()}
-            className="flex items-center gap-2 bg-amber-600 px-4 py-2 rounded-lg"
-          >
-            <Plus size={16} /> Nouveau plat
-          </button>
+    <AdminPage loading={loading} className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-200">Menu & Produits (SEBA)</h2>
+          <p className="text-slate-400 text-sm mt-1">Gérez la carte et les produits disponibles</p>
         </div>
+        <button
+          onClick={() => open()}
+          className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          Nouveau Produit
+        </button>
+      </div>
 
-        <section className="bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden">
-          <div className="p-5 border-b border-slate-700 flex items-center justify-between">
-            <h3 className="font-semibold">Produits</h3>
-            <span className="text-xs text-slate-500">
-              {visibleCount} sur {total}
-            </span>
-          </div>
-
-          {/* Fixed-height scroll area: rows are revealed progressively as the
-              user scrolls here, instead of mounting the whole list at once. */}
-          <div ref={scrollRef} className="overflow-y-auto overflow-x-auto max-h-[65vh]">
+      <div className="bg-[#1e293b] border border-slate-700 rounded-lg overflow-hidden flex flex-col">
+        <section
+          ref={scrollRef}
+          className="flex-1 overflow-auto h-[65vh] relative"
+        >
+          <div className="min-w-[800px]">
             <table className="w-full text-sm">
               <thead className="bg-slate-800/50 text-slate-400 sticky top-0">
                 <tr>
@@ -174,10 +180,10 @@ export default function MenuProduitsPage() {
                         onClick={() => open(product)}
                         className="mr-3 text-amber-400"
                       >
-                        <Pencil size={16} />
+                        <Pencil className="h-4 w-4" />
                       </button>
-                      <button title="Supprimer" onClick={() => remove(product.id)} className="text-red-400">
-                        <Trash2 size={16} />
+                      <button title="Supprimer" onClick={() => setItemToDelete(product.id)} className="text-red-400">
+                        <Trash2 className="h-4 w-4" />
                       </button>
                     </td>
                   </tr>
@@ -202,10 +208,10 @@ export default function MenuProduitsPage() {
         </section>
 
         {modalOpen ? (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 overflow-y-auto">
             <form
               onSubmit={save}
-              className="bg-[#1e293b] border border-slate-700 p-6 rounded-lg w-full max-w-lg space-y-4"
+              className="bg-[#1e293b] border border-slate-700 p-6 rounded-lg w-full max-w-lg space-y-4 my-8"
             >
               <h3 className="text-xl font-semibold">{editing ? 'Modifier le plat' : 'Nouveau plat'}</h3>
               <input
@@ -241,16 +247,41 @@ export default function MenuProduitsPage() {
                   className="bg-slate-800 border border-slate-600 p-3 rounded"
                 />
               </div>
-              <div className="flex items-center gap-4">
-                <Thumb src={previewUrl} alt={form.nom || 'Aperçu'} size={64} />
+
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-slate-300">Image (Fichier local ou URL)</p>
+                <div className="flex items-start gap-4">
+                  <Thumb src={previewUrl} alt={form.nom || 'Aperçu'} size={64} />
+                  <div className="flex-1 space-y-3">
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/gif"
+                      onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })}
+                      className="text-sm w-full"
+                    />
+                    <input
+                      type="url"
+                      placeholder="Ou coller une URL d'image (ex: Unsplash)"
+                      value={form.image_url}
+                      onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+                      className="w-full bg-slate-800 border border-slate-600 p-2 text-sm rounded"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-slate-300">Vidéo de cuisine au survol (Optionnel)</p>
                 <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={(e) => setForm({ ...form, image: e.target.files?.[0] || null })}
-                  className="text-sm"
+                  type="url"
+                  placeholder="URL Vidéo MP4 (ex: Pexels)"
+                  value={form.video_url}
+                  onChange={(e) => setForm({ ...form, video_url: e.target.value })}
+                  className="w-full bg-slate-800 border border-slate-600 p-2 text-sm rounded"
                 />
               </div>
-              <label className="flex gap-2">
+
+              <label className="flex gap-2 items-center pt-2">
                 <input
                   type="checkbox"
                   checked={form.disponible}
@@ -258,23 +289,40 @@ export default function MenuProduitsPage() {
                 />
                 Disponible
               </label>
-              <div className="flex justify-end gap-3">
+
+              <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => {
                     setEditing(null);
                     setModalOpen(false);
                   }}
-                  className="px-4 py-2"
+                  className="px-4 py-2 hover:bg-slate-800 rounded transition-colors"
                 >
                   Annuler
                 </button>
-                <button className="bg-amber-600 px-4 py-2 rounded">Enregistrer</button>
+                <button type="submit" className="bg-amber-600 hover:bg-amber-500 px-4 py-2 rounded transition-colors">
+                  Enregistrer
+                </button>
               </div>
             </form>
           </div>
         ) : null}
       </div>
+      <ConfirmModal
+        isOpen={itemToDelete !== null}
+        title="Supprimer le produit"
+        message="Êtes-vous sûr de vouloir supprimer ce plat ? Cette action est irréversible."
+        confirmText="Supprimer"
+        onConfirm={confirmRemove}
+        onCancel={() => setItemToDelete(null)}
+      />
     </AdminPage>
   );
 }
+
+
+
+
+
+

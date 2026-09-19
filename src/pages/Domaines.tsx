@@ -12,13 +12,13 @@ gsap.registerPlugin(ScrollTrigger);
 
 const FALLBACK_DOMAINES = [
   {
-    id: '01', title: "MACOF Immobilier SARL", subtitle: "Immobilier & BTP", desc: "Investissement immobilier, promotion foncière, construction de bâtiments et gestion de chantiers publics/privés de grande envergure.", details: ["Promotion immobilière", "Travaux publics", "Architecture urbaine", "Gestion locative"], link: "/immobilier", img: "https://images.unsplash.com/photo-1541888081119-74d156828551?q=80&w=2070&auto=format&fit=crop"
+    id: '01', title: "MACOF Immobilier SARL", subtitle: "Immobilier & BTP", desc: "Investissement immobilier, promotion foncière, construction de bâtiments et gestion de chantiers publics/privés de grande envergure.", details: ["Promotion immobilière", "Travaux publics", "Architecture urbaine", "Gestion locative"], link: "/immobilier", img: "https://media.istockphoto.com/id/2151134721/photo/happy-group-of-business-people-standing.jpg?s=612x612&w=0&k=20&c=iTFwKo-IkwoBxrpb-BqwyUR6bK3DrCnnw3pB_wQN-O0="
   },
   {
     id: '02', title: "SEBA International", subtitle: "Restauration & Gastronomie", desc: "Service traiteur premium, restauration d'entreprise et événementielle de très haut niveau, soutenue par une exigence stricte de qualité et de sécurité alimentaire.", details: ["Service Traiteur VIP", "Boulangerie & Pâtisserie", "Restauration Collective", "Événementiel Gastronomique"], link: "/restauration", img: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=2070&auto=format&fit=crop"
   },
   {
-    id: '03', title: "MACOF Print & Com SARL", subtitle: "Design & Imprimerie", desc: "Agence créative spécialisée dans la stratégie de marque, l'impression grand format, la création d'identités visuelles et l'événementiel d'entreprise.", details: ["Impression Numérique/Offset", "Identité Visuelle", "Signalétique", "Organisation d'événements"], link: "/print", img: "https://images.unsplash.com/photo-1563298723-dcfebaa392e3?q=80&w=2070&auto=format&fit=crop"
+    id: '03', title: "MACOF Print & Com SARL", subtitle: "Design & Imprimerie", desc: "Agence créative spécialisée dans la stratégie de marque, l'impression grand format, la création d'identités visuelles et l'événementiel d'entreprise.", details: ["Impression Numérique/Offset", "Identité Visuelle", "Signalétique", "Organisation d'événements"], link: "/print", img: "https://media.istockphoto.com/id/1492549645/photo/black-friday-shoppers-tired-of-waiting.jpg?s=612x612&w=0&k=20&c=WAUcS_XmMOQ9ZhVR7NwOxm9fXjxgZmuST468rRIQv3s="
   },
   {
     id: '04', title: "MACOF Mining SARL", subtitle: "Industrie Minière", desc: "Opérations d'exploration, exploitation responsable, transport spécialisé et sous-traitance dans le secteur minier guinéen.", details: ["Exploration", "Exploitation responsable", "Logistique minière", "Sous-traitance"], link: "/mining", img: "https://images.unsplash.com/photo-1578507005479-7a0808a3d666?q=80&w=2070&auto=format&fit=crop"

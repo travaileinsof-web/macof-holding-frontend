@@ -52,10 +52,11 @@ export function Navbar() {
               <Link to="/about" className="text-[10px] font-sans text-white/80 hover:text-white transition-colors tracking-[0.2em] uppercase">À propos</Link>
               <Link to="/domaines" className="text-[10px] font-sans text-white/80 hover:text-white transition-colors tracking-[0.2em] uppercase">Domaines d'Activité</Link>
               <Link to="/galerie" className="text-[10px] font-sans text-white/80 hover:text-white transition-colors tracking-[0.2em] uppercase">Galerie</Link>
+              <Link to="/partenaires" className="text-[10px] font-sans text-white/80 hover:text-white transition-colors tracking-[0.2em] uppercase">Partenaires</Link>
               <Link to="/catalogues" className="text-[10px] font-sans text-white/80 hover:text-white transition-colors tracking-[0.2em] uppercase">Documents</Link>
             </div>
 
-            <div className="hidden lg:flex items-center">
+            <div className="hidden lg:flex items-center gap-6">
               <CartNavbarLink />
               <Link to="/contact">
                 <Button variant="outline" size="sm" className="text-[10px] tracking-widest uppercase px-6 border-white/50 text-white hover:bg-white hover:text-black">
@@ -85,6 +86,7 @@ export function Navbar() {
             <Link to="/about" className="text-sm font-sans text-white hover:text-red-500 transition-colors tracking-[0.2em] uppercase w-full text-center py-4 border-b border-white/10">À propos</Link>
             <Link to="/domaines" className="text-sm font-sans text-white hover:text-red-500 transition-colors tracking-[0.2em] uppercase w-full text-center py-4 border-b border-white/10">Domaines d'Activité</Link>
             <Link to="/galerie" className="text-sm font-sans text-white hover:text-red-500 transition-colors tracking-[0.2em] uppercase w-full text-center py-4 border-b border-white/10">Galerie</Link>
+            <Link to="/partenaires" className="text-sm font-sans text-white hover:text-red-500 transition-colors tracking-[0.2em] uppercase w-full text-center py-4 border-b border-white/10">Partenaires</Link>
             <Link to="/catalogues" className="text-sm font-sans text-white hover:text-red-500 transition-colors tracking-[0.2em] uppercase w-full text-center py-4 border-b border-white/10">Documents</Link>
             
             <Link to="/contact" className="pt-8">

@@ -5,19 +5,19 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
 import { api } from '@/lib/api';
-import MenuCommande from '../../components/restauration/MenuCommande';
+import PublicMenu from '../../components/restauration/PublicMenu';
 
 gsap.registerPlugin(ScrollTrigger);
 
 const SLUG = 'restauration';
 
 const fallbackContent: Record<string, string> = {
-  hero_title: 'MACOF Restauration',
+  hero_title: 'SEBA International',
   hero_subtitle: "Domaine d'Excellence 02",
   hero_desc: "L'art culinaire porté à son paroxysme. Service traiteur, restauration collective et l'excellence SEBA International.",
   hero_bg: '/plaquette-resto.jpeg',
   vision_title: 'Notre Philosophie',
-  vision_text_1: "MACOF Restauration s'impose comme une référence incontournable de la gastronomie et du service traiteur en Guinée. À travers notre marque phare SEBA International, nous offrons une expérience culinaire raffinée et mémorable.",
+  vision_text_1: "SEBA International s'impose comme une référence incontournable de la gastronomie et du service traiteur en Guinée. À travers notre marque phare SEBA International, nous offrons une expérience culinaire raffinée et mémorable.",
   vision_text_2: "Nos chefs élaborent des cartes qui allient les saveurs locales authentiques aux standards de la haute gastronomie internationale, garantissant une prestation sur-mesure pour chaque occasion.",
   stat_1_value: '5K+',
   stat_1_label: 'Repas/Jour',
@@ -124,6 +124,8 @@ export default function Restauration() {
           </div>
         </section>
 
+        <PublicMenu />
+
         {/* Philosophie & SEBA International */}
         <section className="content-section py-32 bg-background relative border-b border-white/5">
           <div className="max-w-7xl mx-auto px-6 lg:px-12">
@@ -131,7 +133,7 @@ export default function Restauration() {
               <div className="order-2 lg:order-1 relative reveal-up">
                 <div className="aspect-[4/5] overflow-hidden">
                   <img 
-                    src={getImageUrl("https://images.unsplash.com/photo-1544025162-d76694265947?q=80&w=1000&auto=format&fit=crop")}
+                    src={getImageUrl("https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=1000&auto=format&fit=crop")}
                     alt="Plat gastronomique" 
                     className="w-full h-full object-cover filter grayscale-[10%]"
                     onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }}
@@ -224,9 +226,9 @@ export default function Restauration() {
           </div>
         </section>
 
-        <MenuCommande />
-
       </div>
     </AnimatedPage>
   );
 }
+
+

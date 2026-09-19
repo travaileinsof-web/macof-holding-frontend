@@ -9,7 +9,7 @@ import { api } from '@/lib/api';
 const fallbackCatalogues = [
   { id: 1, titre: 'Catalogue Général MACOF Holding', description: 'Découvrez l\'ensemble de nos services', filiale: 'MACOF Holding', file_path: '#' },
   { id: 2, titre: 'Catalogue Immobilier', description: 'Nos projets immobiliers', filiale: 'MACOF Immobilier', file_path: '#' },
-  { id: 3, titre: 'Catalogue Restauration', description: 'Nos offres de restauration', filiale: 'MACOF Restauration', file_path: '#' },
+  { id: 3, titre: 'Catalogue Restauration', description: 'Nos offres de restauration', filiale: 'SEBA International', file_path: '#' },
 ];
 
 const plaquettePublicUrl = '/plaquette-macof-holding.pdf';

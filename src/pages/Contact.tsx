@@ -21,7 +21,7 @@ const FALLBACK = {
 const FALLBACK_FILIALES = [
   { nom: 'MACOF Holding' },
   { nom: 'MACOF Immobilier', slug: 'immobilier' },
-  { nom: 'MACOF Restauration', slug: 'restauration' },
+  { nom: 'SEBA International', slug: 'restauration' },
   { nom: 'MACOF Transit', slug: 'transit' },
   { nom: 'MACOF Mining', slug: 'mining' },
   { nom: 'MACOF Print & Com', slug: 'print' },
@@ -114,7 +114,7 @@ export default function Contact() {
               {/* Carte Siège Social */}
               <div className="relative h-72 w-full overflow-hidden bg-card border border-white/10 group">
                 <img 
-                  src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1000&auto=format&fit=crop" 
+                  src="https://media.istockphoto.com/id/2151279547/photo/business-thinking-or-black-woman-in-office-with-laptop-insight-or-decision-planning-or.webp?a=1&b=1&s=612x612&w=0&k=20&c=ezzg81O81KydwktxCV6XlaZDLs7CAbf7fNjKc_48RbM=" 
                   alt="Siège Social" 
                   className="w-full h-full object-cover opacity-60 filter grayscale-[50%] group-hover:scale-105 group-hover:grayscale-0 transition-all duration-700" 
                 />

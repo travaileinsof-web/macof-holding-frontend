@@ -57,13 +57,6 @@ export default function Print() {
     
   });
 
-  const portfolio = [
-    { cat: 'Identité', title: 'Rebranding Corporate', img: 'https://images.unsplash.com/photo-1587848135898-d1fcda8352db?q=80&w=800&auto=format&fit=crop' },
-    { cat: 'Impression', title: 'Impression Offset HD', img: 'https://images.unsplash.com/photo-1563720223185-11003d516935?q=80&w=800&auto=format&fit=crop' },
-    { cat: 'Impression', title: 'Packaging Premium', img: 'https://images.unsplash.com/photo-1589939705384-5185137a7f0f?q=80&w=800&auto=format&fit=crop' },
-    { cat: 'Événementiel', title: 'Print Grand Format', img: 'https://images.unsplash.com/photo-1512402138243-71ab523f25c7?q=80&w=800&auto=format&fit=crop' },
-  ];
-
   const { data: content, isLoading: loading } = useQuery({
     queryKey: ['pageContent', SLUG],
     queryFn: async () => {
@@ -78,17 +71,15 @@ export default function Print() {
     
   });
 
-  const realisations = useMemo(() => {
-    if (content?.realisations) {
-      try {
-        const parsed = typeof content.realisations === 'string' ? JSON.parse(content.realisations) : content.realisations;
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {
-        console.warn('Error parsing realisations JSON');
+  const [realisations, setRealisations] = useState<any[]>([]);
+  useEffect(() => {
+    api.get('/galerie?filiale=print&limit=100').then(res => {
+      if (res.data.success) {
+        const printReals = Array.isArray(res.data.data?.items) ? res.data.data.items : [];
+        setRealisations(printReals);
       }
-    }
-    return [];
-  }, [content?.realisations]);
+    });
+  }, []);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,34 +287,21 @@ export default function Print() {
                 {realisations.map((item: any, idx: number) => (
                   <div key={idx} className="group relative overflow-hidden aspect-[3/4] bg-gray-100">
                     <img
-                      src={getImageUrl(item.image)}
-                      alt={item.titre}
+                      src={getImageUrl(item.image || item.image_path)}
+                      alt={(item.title || item.titre)}
                       className="w-full h-full object-cover scale-100 group-hover:scale-110 transition-transform duration-700"
                       onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }}
                     />
                     <div className="absolute inset-0 bg-white/90 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center p-6 text-center">
                       <span className="text-blue-900 text-xs font-sans tracking-widest uppercase mb-4">{item.type_projet || 'Design'}</span>
-                      <h4 className="text-gray-900 text-2xl font-serif">{item.titre}</h4>
+                      <h4 className="text-gray-900 text-2xl font-serif">{(item.title || item.titre)}</h4>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {portfolio.filter(p => filter === 'Tous' || p.cat === filter).map((item, idx) => (
-                  <div key={idx} className="group relative overflow-hidden aspect-[3/4] bg-gray-100">
-                    <img 
-                      src={getImageUrl(item.img)} 
-                      alt={item.title} 
-                      className="w-full h-full object-cover transform scale-100 group-hover:scale-110 transition-transform duration-700 filter grayscale-[10%]" 
-                      onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }}
-                    />
-                    <div className="absolute inset-0 bg-white/95 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center items-center p-6 text-center">
-                      <span className="text-blue-900 text-xs font-sans tracking-widest uppercase mb-4 font-semibold">{item.cat}</span>
-                      <h4 className="text-gray-900 text-2xl font-serif">{item.title}</h4>
-                    </div>
-                  </div>
-                ))}
+              <div className="border border-gray-200 bg-gray-50 px-6 py-16 text-center text-gray-500">
+                Aucune réalisation Print &amp; Com n'est publiée pour le moment.
               </div>
             )}
           </div>
@@ -435,3 +413,4 @@ export default function Print() {
     </AnimatedPage>
   );
 }
+

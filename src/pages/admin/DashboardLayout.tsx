@@ -20,14 +20,18 @@ import {
   Briefcase,
   UtensilsCrossed,
   ChevronDown,
+  Camera,
+  X as CloseIcon,
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { VoiceChatbot } from '@/components/admin/VoiceChatbot';
+import { getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
 
 interface AdminUser {
   name?: string;
   email?: string;
   nom?: string;
+  avatar_url?: string | null;
 }
 
 interface NavChild {
@@ -87,6 +91,10 @@ export default function DashboardLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [adminUser, setAdminUser] = useState<AdminUser>({});
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [profilePreview, setProfilePreview] = useState<string | null>(null);
+  const [profileSaving, setProfileSaving] = useState(false);
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -149,6 +157,38 @@ export default function DashboardLayout() {
 
   const toggleGroup = (label: string) =>
     setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+
+  const openProfileModal = () => {
+    setProfileImage(null);
+    setProfilePreview(adminUser.avatar_url || null);
+    setShowProfileModal(true);
+  };
+
+  const saveProfileImage = async () => {
+    if (!profileImage || profileSaving) return;
+    setProfileSaving(true);
+    try {
+      const uploadData = new FormData();
+      uploadData.append('file', profileImage);
+      uploadData.append('folder', 'administrateurs');
+      const uploadResponse = await api.post('/api/v1/admin/upload', uploadData);
+      const avatarUrl = uploadResponse.data?.data?.url;
+      if (!avatarUrl) throw new Error('URL image manquante');
+      const profileResponse = await api.put('/api/v1/admin/profile', { avatar_url: avatarUrl });
+      if (!profileResponse.data?.success || !profileResponse.data?.data) {
+        throw new Error(profileResponse.data?.message || 'Profil non mis à jour');
+      }
+      const updatedUser = { ...adminUser, ...(profileResponse.data?.data || {}), avatar_url: avatarUrl };
+      setAdminUser(updatedUser);
+      localStorage.setItem('admin_user', JSON.stringify(updatedUser));
+      setShowProfileModal(false);
+    } catch (error) {
+      console.error('Erreur photo profil:', error);
+      alert('Impossible de mettre à jour la photo de profil.');
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const groupBadgeTotal = (item: NavItem) =>
     (item.children || []).reduce((sum, child) => sum + (badges[child.path] || 0), 0);
@@ -310,9 +350,18 @@ export default function DashboardLayout() {
             <VoiceChatbot />
             <div className="h-4 w-[1px] bg-slate-700 hidden sm:block" />
             <div className="flex items-center gap-3">
-              <div className="h-8 w-8 rounded-full bg-[#cda434]/20 flex items-center justify-center text-[#cda434] text-sm font-bold">
-                {adminName.charAt(0).toUpperCase()}
-              </div>
+              <button type="button" onClick={openProfileModal} className="group relative h-9 w-9 overflow-hidden rounded-full bg-slate-800 ring-1 ring-white/10 hover:ring-[#cda434] transition" title="Modifier la photo de profil" aria-label="Modifier la photo de profil">
+                {adminUser.avatar_url ? (
+                  <img src={getImageUrl(adminUser.avatar_url)} alt={adminName} className="h-full w-full object-cover" onError={(event) => { event.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }} />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-slate-400">
+                    <Camera className="h-4 w-4" />
+                  </span>
+                )}
+                <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-white opacity-0 transition group-hover:opacity-100">
+                  <Camera className="h-3.5 w-3.5" />
+                </span>
+              </button>
               <span className="text-sm text-slate-400 hidden sm:inline">{adminName}</span>
             </div>
           </div>
@@ -345,6 +394,30 @@ export default function DashboardLayout() {
               >
                 Déconnecter
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProfileModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4" onClick={() => setShowProfileModal(false)}>
+          <div className="w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#111827] shadow-2xl" onClick={(event) => event.stopPropagation()}>
+            <div className="relative border-b border-white/10 bg-gradient-to-br from-[#1f2937] to-[#111827] px-6 py-5">
+              <button type="button" onClick={() => setShowProfileModal(false)} className="absolute right-4 top-4 text-slate-400 hover:text-white" aria-label="Fermer"><CloseIcon className="h-5 w-5" /></button>
+              <p className="text-xs uppercase tracking-[0.25em] text-[#cda434]">Espace administrateur</p>
+              <h2 className="mt-2 text-2xl font-semibold text-white">Photo de profil</h2>
+              <p className="mt-1 text-sm text-slate-400">Personnalisez votre identité dans le tableau de bord.</p>
+            </div>
+            <div className="space-y-5 p-6">
+              <label className="group relative mx-auto flex h-36 w-36 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-slate-600 bg-slate-900 transition hover:border-[#cda434]">
+                {profilePreview ? <img src={profilePreview.startsWith('blob:') ? profilePreview : getImageUrl(profilePreview)} alt="Aperçu du profil" className="h-full w-full object-cover" /> : <Camera className="h-8 w-8 text-slate-500" />}
+                <span className="absolute inset-x-0 bottom-0 bg-black/70 py-2 text-center text-xs text-white opacity-0 transition group-hover:opacity-100">Choisir une photo</span>
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" className="sr-only" onChange={(event) => { const file = event.target.files?.[0]; if (file) { setProfileImage(file); setProfilePreview(URL.createObjectURL(file)); } }} />
+              </label>
+              <div className="flex justify-end gap-3">
+                <button type="button" onClick={() => setShowProfileModal(false)} className="rounded-lg px-4 py-2 text-sm text-slate-300 hover:bg-white/5">Annuler</button>
+                <button type="button" onClick={saveProfileImage} disabled={!profileImage || profileSaving} className="rounded-lg bg-[#cda434] px-4 py-2 text-sm font-semibold text-black transition hover:bg-[#e0b83d] disabled:cursor-not-allowed disabled:opacity-50">{profileSaving ? 'Enregistrement...' : 'Enregistrer la photo'}</button>
+              </div>
             </div>
           </div>
         </div>

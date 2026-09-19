@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-import { ImageOff } from 'lucide-react';
+import { ImageOff, Trash2 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AdminPage } from '../../components/ui/AdminPage';
 import { useInfiniteReveal } from '../../hooks/useInfiniteReveal';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 
 type OrderItem = {
   nom: string;
@@ -89,6 +90,15 @@ export default function MenuCommandesPage() {
     scrollRef
   );
 
+  const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
+
+  const confirmRemoveOrder = async () => {
+    if (!orderToDelete) return;
+    await api.delete(`/api/v1/admin/restauration/commandes/${orderToDelete}`);
+    setOrderToDelete(null);
+    await load();
+  };
+
   const load = async () => {
     const response = await api.get('/api/v1/admin/restauration/commandes');
     setOrders(response.data.data || []);
@@ -133,6 +143,7 @@ export default function MenuCommandesPage() {
                   <th className="p-4 text-left">Total</th>
                   <th className="p-4 text-left">Commande</th>
                   <th className="p-4 text-left">Paiement</th>
+                  <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700">
@@ -180,11 +191,18 @@ export default function MenuCommandesPage() {
                         ))}
                       </select>
                     </td>
+                    <td className="p-4 text-right">
+                      {order.statut === 'livree' && order.statut_paiement === 'paye' && (
+                        <button title="Supprimer" onClick={() => setOrderToDelete(order.id)} className="text-red-400 hover:text-red-300 transition-colors">
+                          <Trash2 className="h-5 w-5" />
+                        </button>
+                      )}
+                    </td>
                   </tr>
                 ))}
                 {orders.length === 0 && !loading && (
                   <tr>
-                    <td colSpan={6} className="p-6 text-center text-slate-500">
+                    <td colSpan={7} className="p-6 text-center text-slate-500">
                       Aucune commande pour le moment.
                     </td>
                   </tr>
@@ -200,6 +218,18 @@ export default function MenuCommandesPage() {
           </div>
         </section>
       </div>
+      <ConfirmModal
+        isOpen={orderToDelete !== null}
+        title="Supprimer la commande"
+        message="Êtes-vous sûr de vouloir supprimer cette commande ? Cette action est irréversible."
+        confirmText="Supprimer"
+        onConfirm={confirmRemoveOrder}
+        onCancel={() => setOrderToDelete(null)}
+      />
     </AdminPage>
   );
 }
+
+
+
+

@@ -41,6 +41,7 @@ interface Temoignage {
   entreprise: string;
   message: string;
   avatar_url: string;
+  active?: boolean;
 }
 
 interface MacofData {
@@ -85,10 +86,10 @@ const MACOF_DATA: MacofData = {
   ],
 
   realisations: [
-    { title: "Développement Foncier", category: "Immobilier", image: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?q=80&w=1000&auto=format&fit=crop" },
-    { title: "Gastronomie de Luxe", category: "Restauration", image: "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?q=80&w=1000&auto=format&fit=crop" },
-    { title: "Extraction Minière", category: "Mining", image: "https://images.unsplash.com/photo-1578328819058-b69f3a3b0f6b?q=80&w=1000&auto=format&fit=crop" },
-    { title: "Campagnes Marketing", category: "Print", image: "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=1000&auto=format&fit=crop" }
+    { title: "Développement Foncier", category: "Immobilier", image: "https://media.istockphoto.com/id/1572513989/photo/african-couple-viewing-real-estate-house.jpg?s=612x612&w=0&k=20" },
+    { title: "Design & Aménagement", category: "Immobilier", image: "https://media.istockphoto.com/id/522336505/photo/happy-couple-at-homeware-store.webp?a=1&b=1&s=612x612&w=0&k=20&c=5ZKkTJadks8bitjWzlWKDrddNESsdzsleXUFgoLCBvU=" },
+    { title: "Architecture d'Intérieur", category: "Immobilier", image: "https://media.istockphoto.com/id/1358799929/photo/young-couple-consulting-with-interior-designer.webp?a=1&b=1&s=612x612&w=0&k=20&c=4P02nWGGQP1xuJ3MF-jpuxHmSjSv875178bXyTfvQnM=" },
+    { title: "Gestion de Biens", category: "Immobilier", image: "https://media.istockphoto.com/id/1572514012/photo/african-couple-viewing-real-estate-house.webp?a=1&b=1&s=612x612&w=0&k=20&c=_D-nrY18IaQCjce0jJGeONSqbuQ-6iCQM8X4qlnxw0g=" }
   ],
 
   partenaires: [
@@ -103,14 +104,14 @@ const MACOF_DATA: MacofData = {
       poste: "Directeur des Opérations", 
       entreprise: "Groupe Bolloré", 
       message: "L'expertise de MACOF dans la gestion logistique et le transit a radicalement amélioré nos délais de livraison. Un partenaire de confiance absolu.",
-      avatar_url: "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=200&auto=format&fit=crop"
+      avatar_url: "https://images.unsplash.com/photo-1506277886164-e25aa3f4ef7f?q=80&w=200&auto=format&fit=crop"
     },
     { 
       nom: "Aminata Diallo", 
       poste: "CEO", 
       entreprise: "Global Trade Africa", 
       message: "Nous collaborons avec MACOF Immobilier depuis 3 ans sur des projets d'envergure. Leur rigueur et leur respect des normes internationales sont exemplaires.",
-      avatar_url: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?q=80&w=200&auto=format&fit=crop"
+      avatar_url: "https://images.unsplash.com/photo-1531123414708-f47c4ce6d654?q=80&w=200&auto=format&fit=crop"
     }
   ]
 };
@@ -135,7 +136,7 @@ export default function Home() {
         
         if (!isMounted) return;
 
-        let newContent = { ...MACOF_DATA };
+        let newContent = { ...MACOF_DATA, realisations: [], partenaires: [], temoignages: [] };
 
         if (resContent.data?.success && Object.keys(resContent.data.data).length > 0) {
           const fetchedData = { ...resContent.data.data };
@@ -144,8 +145,10 @@ export default function Home() {
             if (fetchedData[key] && typeof fetchedData[key] === 'string') {
               try {
                 const parsed = JSON.parse(fetchedData[key]);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  fetchedData[key] = parsed;
+                if (Array.isArray(parsed)) {
+                  fetchedData[key] = key === 'temoignages'
+                    ? parsed.map((item: Temoignage) => ({ ...item, active: item.active !== false }))
+                    : parsed;
                 } else {
                   delete fetchedData[key];
                 }
@@ -346,7 +349,7 @@ export default function Home() {
               <div className="reveal-up relative">
                 <div className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
                   <img 
-                    src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?q=80&w=1000&auto=format&fit=crop" 
+                    src="https://media.istockphoto.com/id/2151134701/photo/cyber-security-development-team.jpg?s=612x612&w=0&k=20&c=5EhVP6O5Ocu8kAuR26kaCHBoGBSz73Zxe0Q05XPUwC8=" 
                     alt="Bureau Corporate" 
                     className="w-full h-full object-cover" 
                   />
@@ -434,7 +437,7 @@ export default function Home() {
               <h3 className="text-4xl md:text-5xl font-serif text-gray-900 mb-6">Nos Meilleures <span className="italic text-gray-500">Réalisations</span></h3>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(Array.isArray(content.realisations) ? content.realisations : MACOF_DATA.realisations).map((item, idx) => (
+              {(Array.isArray(content.realisations) ? content.realisations : []).map((item, idx) => (
                 <div key={idx} className={`group relative overflow-hidden reveal-up ${idx === 0 || idx === 3 ? 'aspect-[16/9]' : 'aspect-square'}`}>
                   <img 
                     src={getImageUrl(item.image)} 
@@ -466,7 +469,7 @@ export default function Home() {
           
           <div className="relative flex overflow-hidden group">
             <div className="animate-marquee flex gap-16 items-center min-w-full">
-              {(content.partenaires || MACOF_DATA.partenaires).map((p, i) => (
+              {(content.partenaires || []).map((p, i) => (
                 <div key={i} className="flex-shrink-0 flex flex-col items-center justify-center gap-4">
                   <img 
                     src={getImageUrl(p.logo_url)} 
@@ -477,7 +480,7 @@ export default function Home() {
                 </div>
               ))}
               {/* Duplication pour le défilement infini */}
-              {(content.partenaires || MACOF_DATA.partenaires).map((p, i) => (
+              {(content.partenaires || []).map((p, i) => (
                 <div key={`dup-${i}`} className="flex-shrink-0 flex flex-col items-center justify-center gap-4">
                   <img 
                     src={getImageUrl(p.logo_url)} 
@@ -503,7 +506,7 @@ export default function Home() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-              {(content.temoignages || MACOF_DATA.temoignages).map((t, i) => (
+              {(content.temoignages || []).filter((t) => t.active !== false).map((t, i) => (
                 <div key={i} className="reveal-up bg-white border border-gray-100 p-8 shadow-xl relative group hover:-translate-y-2 transition-transform duration-500">
                   <div className="absolute top-8 right-8 text-gray-100 group-hover:text-red-50 transition-colors duration-500">
                     <MessageCircle size={64} className="fill-current" />
@@ -533,7 +536,7 @@ export default function Home() {
 
         {/* SECTION CTA FINAL */}
         <section className="py-32 bg-red-600 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2000&auto=format&fit=crop')] mix-blend-multiply opacity-20 object-cover" />
+          <div className="absolute inset-0 bg-[url('https://media.istockphoto.com/id/1179885419/photo/four-confident-african-american-male-and-female-professionals-standing-together-in-bright.jpg?s=612x612&w=0&k=20&c=MFHVh3PYGxbqyRC02_ECSwX7ABfMA4ptgGw_eJ7V3w8=')] mix-blend-multiply opacity-20 object-cover" />
           <div className="relative z-10 max-w-4xl mx-auto px-6">
             <h2 className="text-4xl md:text-6xl font-serif text-white mb-8 font-light">Prêt à construire l'avenir ensemble ?</h2>
             <p className="text-red-100 mb-12 text-xl font-light">Que vous cherchiez un partenariat B2B stratégique ou des services de très haute qualité, notre groupe est à votre écoute.</p>

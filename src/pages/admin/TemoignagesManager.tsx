@@ -23,6 +23,7 @@ interface Temoignage {
   entreprise: string;
   message: string;
   avatar_url: string;
+  active: boolean;
 }
 
 // ─── Main Component ────────────────────────────────────────────────────────────
@@ -49,7 +50,9 @@ export default function TemoignagesManager() {
       if (res.data.success && res.data.data?.temoignages) {
         try {
           const parsed = JSON.parse(res.data.data.temoignages);
-          const parsedArray = Array.isArray(parsed) ? parsed : [];
+          const parsedArray = Array.isArray(parsed)
+            ? parsed.map((item: any) => ({ ...item, active: item.active !== false }))
+            : [];
           const withIds = parsedArray.map((t: any) => ({ ...t, id: Math.random().toString(36).substring(7) }));
           setTemoignages(withIds);
           // On garde une empreinte des données telles que reçues du serveur (sans id local)
@@ -84,7 +87,7 @@ export default function TemoignagesManager() {
 
   const handleAddTemoignage = () => {
     setTemoignages((prev) => [
-      { id: Math.random().toString(36).substring(7), nom: '', poste: '', entreprise: '', message: '', avatar_url: '' },
+      { id: Math.random().toString(36).substring(7), nom: '', poste: '', entreprise: '', message: '', avatar_url: '', active: true },
       ...prev
     ]);
   };
@@ -106,6 +109,10 @@ export default function TemoignagesManager() {
 
   const handleChange = (id: string, field: keyof Temoignage, value: string) => {
     setTemoignages((prev) => prev.map((t) => t.id === id ? { ...t, [field]: value } : t));
+  };
+
+  const toggleActive = (id: string) => {
+    setTemoignages((prev) => prev.map((t) => t.id === id ? { ...t, active: !t.active } : t));
   };
 
   const handleFileUpload = async (id: string, file: File) => {
@@ -302,6 +309,14 @@ export default function TemoignagesManager() {
 
                   {/* Actions */}
                   <div className="flex-shrink-0 flex items-start justify-end">
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(tem.id)}
+                      className={`mr-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${tem.active ? 'bg-green-400/10 text-green-400' : 'bg-slate-700 text-slate-400'}`}
+                      title="Activer ou désactiver ce témoignage"
+                    >
+                      {tem.active ? 'Actif' : 'Inactif'}
+                    </button>
                     <button
                       onClick={() => handleRemoveTemoignage(tem.id)}
                       className="text-slate-500 hover:text-red-400 p-2 rounded-lg hover:bg-red-400/10 transition-colors"

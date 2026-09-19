@@ -52,6 +52,7 @@ export function useRealtimeSync() {
             queryClient.invalidateQueries({ queryKey: [data.entity] });
             const aliases: Record<string, string[]> = {
               galerie: ['galerieData'],
+              pages: ['galerieData'],
               catalogues: ['catalogues'],
               restauration: ['restaurationMenu'],
               pages: ['pages'],

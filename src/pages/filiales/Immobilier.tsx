@@ -72,17 +72,15 @@ export default function Immobilier() {
     return () => clearInterval(poll);
   }, []);
 
-  const realisations = useMemo(() => {
-    if (content?.realisations) {
-      try {
-        const parsed = typeof content.realisations === 'string' ? JSON.parse(content.realisations) : content.realisations;
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {
-        console.warn('Error parsing realisations JSON');
+  const [realisations, setRealisations] = useState<any[]>([]);
+  useEffect(() => {
+    api.get('/galerie?filiale=immobilier&limit=100').then(res => {
+      if (res.data.success) {
+        const immoReals = Array.isArray(res.data.data?.items) ? res.data.data.items : [];
+        setRealisations(immoReals);
       }
-    }
-    return [];
-  }, [content?.realisations]);
+    });
+  }, []);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -260,14 +258,14 @@ export default function Immobilier() {
                 realisations.slice(0, 6).map((item: any, i: number) => (
                   <div key={i} className="relative group overflow-hidden bg-black aspect-[4/3]">
                     <img
-                      src={getImageUrl(item.image_path)}
-                      alt={item.titre}
+                      src={getImageUrl((item.image || item.image_path))}
+                      alt={(item.title || item.titre)}
                       className="w-full h-full object-cover filter grayscale-[20%] group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700 opacity-80 group-hover:opacity-100"
                       onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-8 text-left">
                       <span className="text-red-500 text-xs uppercase tracking-widest mb-2 font-semibold">{item.type_projet || 'Génie Civil'}</span>
-                      <h4 className="text-white font-serif text-2xl">{item.titre}</h4>
+                      <h4 className="text-white font-serif text-2xl">{(item.title || item.titre)}</h4>
                     </div>
                   </div>
                 ))
@@ -375,3 +373,5 @@ export default function Immobilier() {
     </AnimatedPage>
   );
 }
+
+

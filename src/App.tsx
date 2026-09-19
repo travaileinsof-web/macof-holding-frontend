@@ -22,6 +22,7 @@ import Domaines from "./pages/Domaines";
 import Galerie from "./pages/Galerie";
 import Contact from "./pages/Contact";
 import Catalogues from "./pages/Catalogues";
+import Partenaires from "./pages/Partenaires";
 
 import Immobilier from "./pages/filiales/Immobilier";
 import Restauration from "./pages/filiales/Restauration";
@@ -138,6 +139,14 @@ function AnimatedRoutes() {
           element={
             <AnimatedPage>
               <Catalogues />
+            </AnimatedPage>
+          }
+        />
+        <Route
+          path="/partenaires"
+          element={
+            <AnimatedPage>
+              <Partenaires />
             </AnimatedPage>
           }
         />

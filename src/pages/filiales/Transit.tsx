@@ -67,17 +67,15 @@ export default function Transit() {
     
   });
 
-  const realisations = useMemo(() => {
-    if (content?.realisations) {
-      try {
-        const parsed = typeof content.realisations === 'string' ? JSON.parse(content.realisations) : content.realisations;
-        if (Array.isArray(parsed)) return parsed;
-      } catch (e) {
-        console.warn('Error parsing realisations JSON');
+  const [realisations, setRealisations] = useState<any[]>([]);
+  useEffect(() => {
+    api.get('/galerie?filiale=transit&limit=100').then(res => {
+      if (res.data.success) {
+        const reals = Array.isArray(res.data.data?.items) ? res.data.data.items : [];
+        setRealisations(reals);
       }
-    }
-    return [];
-  }, [content?.realisations]);
+    });
+  }, []);
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -325,14 +323,14 @@ export default function Transit() {
                 {realisations.slice(0, 4).map((item: any, i: number) => (
                   <div key={i} className="group relative overflow-hidden bg-gray-100 aspect-square">
                     <img
-                      src={getImageUrl(item.image_path)}
-                      alt={item.titre}
+                      src={getImageUrl((item.image || item.image_path))}
+                      alt={(item.title || item.titre)}
                       className="w-full h-full object-cover scale-100 group-hover:scale-110 transition-transform duration-700 grayscale group-hover:grayscale-0"
                       onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }}
                     />
                     <div className="absolute inset-0 bg-[#111111]/80 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-8 text-center items-center backdrop-blur-sm">
                       <span className="text-red-600 text-xs font-sans tracking-widest uppercase mb-3 font-bold">{item.type_projet || 'Logistique'}</span>
-                      <h4 className="text-white text-2xl font-serif">{item.titre}</h4>
+                      <h4 className="text-white text-2xl font-serif">{(item.title || item.titre)}</h4>
                     </div>
                   </div>
                 ))}
@@ -446,3 +444,4 @@ export default function Transit() {
     </AnimatedPage>
   );
 }
+

@@ -8,6 +8,9 @@ export function Footer() {
 
   return (
     <footer className="bg-[#050b14] border-t border-white/10 relative overflow-hidden">
+      {/* Background Image */}
+      <div className="absolute inset-0 bg-[url('https://media.istockphoto.com/id/1127533037/photo/attractive-smiling-people-are-in-the-street-festival.jpg?s=612x612&w=0&k=20&c=qw0cf3q7lR0uSEfLTMa1_L-aAQ8H4YGko-O5ESm-8Jg=')] bg-cover bg-center mix-blend-overlay opacity-10" />
+      
       {/* Background decorative element */}
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-[#0A4287]/50 to-transparent" />
       <div className="absolute bottom-0 right-0 w-1/3 h-full bg-[#0A4287]/5 blur-[120px] pointer-events-none" />
@@ -69,7 +72,7 @@ export function Footer() {
             <h4 className="text-xs font-sans tracking-[0.3em] text-[#b8142b] uppercase mb-8">Nos Filiales</h4>
             <ul className="space-y-3">
               <li><Link to="/immobilier" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#0A4287] rounded-full" />MACOF Immobilier</Link></li>
-              <li><Link to="/restauration" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#0A4287] rounded-full" />MACOF Restauration</Link></li>
+              <li><Link to="/restauration" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#0A4287] rounded-full" />SEBA International</Link></li>
               <li><Link to="/print" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#0A4287] rounded-full" />MACOF Print & Com</Link></li>
               <li><Link to="/mining" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#0A4287] rounded-full" />MACOF Mining</Link></li>
               <li><Link to="/transit" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-[#0A4287] rounded-full" />MACOF Transit</Link></li>
@@ -85,6 +88,7 @@ export function Footer() {
               <li><Link to="/about" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-white/30 rounded-full" />À propos</Link></li>
               <li><Link to="/domaines" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-white/30 rounded-full" />Domaines d'activité</Link></li>
               <li><Link to="/galerie" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-white/30 rounded-full" />Galerie</Link></li>
+              <li><Link to="/partenaires" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-white/30 rounded-full" />Partenaires</Link></li>
               <li><Link to="/catalogues" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-white/30 rounded-full" />Documents</Link></li>
               <li><Link to="/contact" className="text-white/60 font-light text-sm hover:text-white transition-colors flex items-center gap-2"><span className="w-1.5 h-1.5 bg-white/30 rounded-full" />Contact</Link></li>
             </ul>

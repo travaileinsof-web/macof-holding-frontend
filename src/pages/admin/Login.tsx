@@ -50,7 +50,7 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-black relative">
       <div className="absolute inset-0 z-0 opacity-20">
         <img
-          src="https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2069&auto=format&fit=crop"
+          src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=2069&auto=format&fit=crop"
           alt="Office"
           className="w-full h-full object-cover"
         />

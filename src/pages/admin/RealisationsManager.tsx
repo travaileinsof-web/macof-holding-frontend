@@ -11,6 +11,7 @@ import {
 import { AdminPage } from '../../components/ui/AdminPage';
 import { api } from '../../lib/api';
 import { getImageUrl } from '../../lib/utils';
+import { Link } from 'react-router-dom';
 
 interface Filiale {
   id: number;
@@ -19,7 +20,7 @@ interface Filiale {
 }
 
 interface Realisation {
-  id: string; // Unique ID for React keys
+  id: number;
   title: string;
   desc: string;
   image: string;
@@ -63,31 +64,25 @@ export default function RealisationsManager() {
     fetchFiliales();
   }, []);
 
-  // Fetch realisations when selected slug changes
+  // The gallery table is the single source of truth for public realizations.
   useEffect(() => {
     if (!selectedSlug) return;
     const fetchRealisations = async () => {
       setLoading(true);
       try {
-        const res = await api.get(`/api/v1/admin/pages/${selectedSlug}`);
-        if (res.data.success && res.data.data?.sections) {
-          const contents = res.data.data.sections;
-          const realisationsSection = contents.find((c: any) => (c.section_key || c.key) === 'realisations');
-          if (realisationsSection && (realisationsSection.content_value || realisationsSection.value)) {
-            try {
-              const value = realisationsSection.content_value ?? realisationsSection.value;
-              const parsed = typeof value === 'string' ? JSON.parse(value) : value;
-              setRealisations(Array.isArray(parsed) ? parsed : []);
-            } catch (e) {
-              console.error('Erreur parsing JSON realisations:', e);
-              setRealisations([]);
-            }
-          } else {
-            setRealisations([]);
-          }
-        } else {
-          setRealisations([]);
-        }
+        const filiale = filiales.find((item) => item.slug === selectedSlug);
+        const res = await api.get('/api/v1/admin/galerie');
+        const items = res.data.success && Array.isArray(res.data.data) ? res.data.data : [];
+        setRealisations(
+          items
+            .filter((item: any) => item.filiale === filiale?.id)
+            .map((item: any) => ({
+              id: item.id,
+              title: item.titre,
+              desc: item.description_courte || '',
+              image: item.image_path,
+            }))
+        );
       } catch (err) {
         console.error('Erreur fetch realisations:', err);
         setRealisations([]);
@@ -96,24 +91,7 @@ export default function RealisationsManager() {
       }
     };
     fetchRealisations();
-  }, [selectedSlug]);
-
-  const saveToBackend = async (newRealisations: Realisation[]) => {
-    if (!selectedSlug) return;
-    try {
-      await api.post('/api/v1/admin/pages/bulk', {
-        page_slug: selectedSlug,
-        contents: [{
-          section_key: 'realisations',
-          content_value: JSON.stringify(newRealisations),
-          content_type: 'json',
-        }],
-      });
-    } catch (err) {
-      console.error('Erreur sauvegarde realisations:', err);
-      throw err;
-    }
-  };
+  }, [selectedSlug, filiales]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -176,26 +154,31 @@ export default function RealisationsManager() {
         return;
       }
 
-      let updatedArray = [...realisations];
+      const filiale = filiales.find((item) => item.slug === selectedSlug);
+      if (!filiale) throw new Error('Filiale introuvable');
 
-      if (editId) {
-        updatedArray = updatedArray.map(r => 
-          r.id === editId 
-            ? { ...r, title: formTitle, desc: formDesc, image: finalImageUrl }
-            : r
-        );
-      } else {
-        const newItem: Realisation = {
-          id: Date.now().toString(),
-          title: formTitle,
-          desc: formDesc,
-          image: finalImageUrl
-        };
-        updatedArray.push(newItem);
-      }
+      const payload = {
+        titre: formTitle,
+        filiale: filiale.id,
+        description_courte: formDesc,
+        type_projet: 'autre',
+        image_path: finalImageUrl,
+      };
+      const response = editId
+        ? await api.put(`/api/v1/admin/galerie/${editId}`, payload)
+        : await api.post('/api/v1/admin/galerie', payload);
+      if (!response.data.success) throw new Error('Erreur de sauvegarde');
 
-      await saveToBackend(updatedArray);
-      setRealisations(updatedArray);
+      const item = response.data.data;
+      const savedItem = {
+        id: item.id,
+        title: item.titre,
+        desc: item.description_courte || '',
+        image: item.image_path,
+      };
+      setRealisations((current) => editId
+        ? current.map((entry) => entry.id === editId ? savedItem : entry)
+        : [...current, savedItem]);
       closeModal();
     } catch (err) {
       console.error('Erreur save item:', err);
@@ -205,13 +188,12 @@ export default function RealisationsManager() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Supprimer cette r\u00e9alisation ?')) return;
+  const handleDelete = async (id: number) => {
+    if (!confirm('Supprimer cette réalisation ?')) return;
     setSaving(true);
     try {
-      const updatedArray = realisations.filter(r => r.id !== id);
-      await saveToBackend(updatedArray);
-      setRealisations(updatedArray);
+      await api.delete(`/api/v1/admin/galerie/${id}`);
+      setRealisations((current) => current.filter((item) => item.id !== id));
     } catch (err) {
       console.error('Erreur suppression:', err);
       alert("Erreur lors de la suppression.");
@@ -225,8 +207,14 @@ export default function RealisationsManager() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-slate-200">R\u00e9alisations par Filiale</h2>
-          <p className="text-slate-400 text-sm mt-1">G\u00e9rez les projets sp\u00e9cifiques affich\u00e9s sur les pages des filiales.</p>
+          <h2 className="text-2xl font-bold text-slate-200">Réalisations par Filiale</h2>
+          <p className="text-slate-400 text-sm mt-1">Gérez les projets spécifiques affichés sur les pages des filiales.</p>
+          <p className="text-slate-500 text-xs mt-2">
+            Pour les images de la galerie publique, utilisez{' '}
+            <Link to="/admin/galerie" className="text-amber-400 hover:text-amber-300 underline underline-offset-2">
+              la gestion de la Galerie
+            </Link>.
+          </p>
         </div>
         <button
           onClick={openCreateModal}
@@ -234,14 +222,14 @@ export default function RealisationsManager() {
           className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 disabled:cursor-not-allowed text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
         >
           <Plus className="h-4 w-4" />
-          Ajouter une r\u00e9alisation
+          Ajouter une réalisation
         </button>
       </div>
 
       {/* Filter / Filiale Selection */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#1e293b] p-4 rounded-lg border border-slate-700">
         <div>
-          <label className="block text-sm font-medium text-slate-300 mb-1">S\u00e9lectionner une filiale</label>
+          <label className="block text-sm font-medium text-slate-300 mb-1">Sélectionner une filiale</label>
           <select
             value={selectedSlug}
             onChange={(e) => setSelectedSlug(e.target.value)}
@@ -295,7 +283,7 @@ export default function RealisationsManager() {
           {realisations.length === 0 && (
             <div className="col-span-full text-center py-12 text-slate-500 bg-[#1e293b] border border-slate-700 rounded-lg">
               <ImageIcon className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Aucune r\u00e9alisation pour cette filiale.</p>
+              <p>Aucune réalisation pour cette filiale.</p>
             </div>
           )}
         </div>
@@ -306,7 +294,7 @@ export default function RealisationsManager() {
           <div className="bg-[#1e293b] border border-slate-700 rounded-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between px-6 py-4 border-b border-slate-700">
               <h3 className="text-lg font-semibold text-slate-200">
-                {editId ? 'Modifier la r\u00e9alisation' : 'Ajouter une r\u00e9alisation'}
+                {editId ? 'Modifier la réalisation' : 'Ajouter une réalisation'}
               </h3>
               <button onClick={closeModal} className="text-slate-400 hover:text-white">
                 <X className="h-5 w-5" />

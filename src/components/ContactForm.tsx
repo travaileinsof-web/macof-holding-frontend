@@ -20,7 +20,7 @@ interface ContactFormProps {
 const DEFAULT_FILIALES: FilialeOption[] = [
   { nom: 'MACOF Holding' },
   { nom: 'MACOF Immobilier' },
-  { nom: 'MACOF Restauration' },
+  { nom: 'SEBA International' },
   { nom: 'MACOF Transit' },
   { nom: 'MACOF Mining' },
   { nom: 'MACOF Print & Com' },

@@ -10,7 +10,7 @@ gsap.registerPlugin(ScrollTrigger);
 const ABOUT_DATA = {
   hero_title: "Notre Histoire, <br/><span class=\"italic text-red-600\">Notre Vision.</span>",
   hero_desc: "MACOF Holding est un groupe de droit guinéen, structuré autour d'une vision ambitieuse : construire, développer et transformer durablement des secteurs stratégiques de l'économie. À travers une organisation moderne et une gouvernance rigoureuse, le groupe incarne « l'art de façonner l'avenir ».",
-  hero_img: "https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=2000&auto=format&fit=crop",
+  hero_img: "https://media.istockphoto.com/id/1127740243/photo/people-who-achieved-good-results-in-business-system.jpg?s=612x612&w=0&k=20&c=u5e0zaOzI0nG6fs_K8T0YcMKV_cWT7zDU-GQtjpuBG0=",
   
   vision: "Devenir un groupe de référence, reconnu pour son excellence, sa performance durable et sa contribution au développement économique de la Guinée et au-delà de la sous-région ouest-africaine.",
   mission: "Structurer, piloter et développer nos filiales à travers une gouvernance rigoureuse, une stratégie claire et une gestion centralisée, afin de garantir une croissance durable et créatrice de valeur pour l'ensemble des parties prenantes.",

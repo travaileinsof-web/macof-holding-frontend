@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { api } from '../../lib/api';
 import { AdminPage } from '../../components/ui/AdminPage';
+import { ConfirmModal } from '../../components/ui/ConfirmModal';
 import { getImageUrl } from '../../lib/utils';
 
 interface GalerieItem {
@@ -45,6 +46,7 @@ export default function GalerieManager() {
   const [formTypeProjet, setFormTypeProjet] = useState('autre');
   const [formLieu, setFormLieu] = useState('');
   const [formFile, setFormFile] = useState<File | null>(null);
+  const [itemToDelete, setItemToDelete] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchData = useCallback(async () => {
@@ -131,14 +133,14 @@ export default function GalerieManager() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Supprimer cette image ?')) return;
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
     try {
-      await api.delete(`/api/v1/admin/galerie/${id}`);
+      await api.delete(`/api/v1/admin/galerie/${itemToDelete}`);
+      setItemToDelete(null);
       fetchData();
     } catch (err: any) {
       console.error('Erreur suppression:', err);
-      alert(err?.response?.data?.message || 'Erreur lors de la suppression.');
     }
   };
 
@@ -201,7 +203,7 @@ export default function GalerieManager() {
                   loading="lazy"
                 />
                 <button
-                  onClick={() => handleDelete(img.id)}
+                  onClick={() => setItemToDelete(img.id)}
                   className="absolute top-2 right-2 bg-red-600 hover:bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -339,7 +341,13 @@ export default function GalerieManager() {
             </div>
           </div>
         )}
+        <ConfirmModal isOpen={itemToDelete !== null} title="Supprimer l'image" message="Êtes-vous sûr de vouloir supprimer cette image de la galerie ? Cette action est irréversible." confirmText="Supprimer" onConfirm={confirmDelete} onCancel={() => setItemToDelete(null)} />
       </div>
     </AdminPage>
   );
 }
+
+
+
+
+
