@@ -25,9 +25,11 @@ const fallbackContent: Record<string, string> = {
 };
 
 const fallbackServices = [
-  { title: "Pêche Industrielle", desc: "Flotte de chalutiers et palangriers dotés de systèmes de congélation à bord (-40°C) garantissant la qualité de la capture.", icon: "" },
-  { title: "Transformation & Conditionnement", desc: "Usines de filetage, calibrage et surgélation certifiées aux normes européennes (CE).", icon: "" },
-  { title: "Exportation & Marchés", desc: "Réseau de distribution B2B fournissant l'Europe, l'Asie et la sous-région ouest-africaine.", icon: "" },
+  { title: "Pêche artisanale et industrielle", desc: "Pêche artisanale et industrielle.", icon: "" },
+  { title: "Transformation et conservation", desc: "Transformation et conservation des produits halieutiques.", icon: "" },
+  { title: "Commercialisation et distribution", desc: "Commercialisation et distribution des produits de la mer.", icon: "" },
+  { title: "Exploitation durable des ressources", desc: "Activités liées à l'exploitation durable des ressources marines.", icon: "" },
+  { title: "Qualité et normes sanitaires", desc: "Contrôle qualité et respect des normes sanitaires.", icon: "" },
 ];
 
 export default function Fishing() {

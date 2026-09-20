@@ -36,6 +36,7 @@ const fallbackServices = [
 export default function Restauration() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [content, setContent] = useState<Record<string, string> | null>(null);
+  const [realisations, setRealisations] = useState<any[]>([]);
 
   // Fetch page content and filiale data
   useEffect(() => {
@@ -57,6 +58,21 @@ export default function Restauration() {
       });
     }, 30000);
     return () => clearInterval(poll);
+  }, []);
+
+  useEffect(() => {
+    const fetchRealisations = async () => {
+      try {
+        const response = await api.get('/galerie?filiale=restauration&limit=100');
+        if (response.data?.success && Array.isArray(response.data.data?.items)) {
+          setRealisations(response.data.data.items);
+        }
+      } catch (error) {
+        console.warn('Erreur chargement des réalisations SEBA:', error);
+      }
+    };
+
+    fetchRealisations();
   }, []);
 
 
@@ -211,9 +227,19 @@ export default function Restauration() {
             <h2 className="text-sm font-sans tracking-[0.3em] text-red-200 uppercase mb-6">Aperçu</h2>
             <h3 className="text-4xl md:text-5xl font-serif text-white mb-16">Galerie Réalisations</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <img src={getImageUrl("https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?q=80&w=1000&auto=format&fit=crop")} alt="Restaurant 1" className="w-full h-80 object-cover hover:opacity-80 transition-opacity" onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }} />
-              <img src={getImageUrl("https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000&auto=format&fit=crop")} alt="Restaurant 2" className="w-full h-80 object-cover hover:opacity-80 transition-opacity" onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }} />
-              <img src={getImageUrl("https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1000&auto=format&fit=crop")} alt="Restaurant 3" className="w-full h-80 object-cover hover:opacity-80 transition-opacity" onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }} />
+              {(realisations.length > 0 ? realisations.slice(0, 6) : [
+                { titre: 'Restaurant 1', image_path: 'https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?q=80&w=1000&auto=format&fit=crop' },
+                { titre: 'Restaurant 2', image_path: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?q=80&w=1000&auto=format&fit=crop' },
+                { titre: 'Restaurant 3', image_path: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=1000&auto=format&fit=crop' },
+              ]).map((item: any, index: number) => (
+                <img
+                  key={item.id || index}
+                  src={getImageUrl(item.image_path)}
+                  alt={item.titre || 'Réalisation SEBA'}
+                  className="w-full h-80 object-cover hover:opacity-80 transition-opacity"
+                  onError={(e) => { e.currentTarget.src = DEFAULT_FALLBACK_IMAGE; }}
+                />
+              ))}
             </div>
           </div>
         </section>
