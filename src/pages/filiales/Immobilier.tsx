@@ -2,7 +2,7 @@ import { useEffect, useRef, useState , useMemo } from 'react';
 import { AnimatedPage } from '../../components/layout/AnimatedPage';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
+import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE, parseServices } from '../../lib/utils';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useQuery } from '@tanstack/react-query';
@@ -99,16 +99,8 @@ export default function Immobilier() {
     }
   };
 
-  // Force fallbackServices to display the rich text if DB items lack descriptions
-  let services = fallbackServices;
-  if (content?.services) {
-    try {
-      const parsed = JSON.parse(content.services);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].desc) {
-        services = parsed;
-      }
-    } catch(e) {}
-  }
+  const configuredServices = parseServices(content?.services);
+  const services = configuredServices.length > 0 ? configuredServices : fallbackServices;
 
   useEffect(() => {
     const ctx = gsap.context(() => {

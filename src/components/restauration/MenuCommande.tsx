@@ -64,17 +64,27 @@ function OrderItemsPreview({ items }: { items?: OrderItem[] }) {
   const shown = items.slice(0, 3);
   const extra = items.length - shown.length;
   return (
-    <div className="flex items-center -space-x-2">
-      {shown.map((item, i) => (
-        <div key={i} title={`${item.nom} × ${item.quantite}`} className="ring-2 ring-[#1e293b] rounded-md">
-          <Thumb src={item.image_url} alt={item.nom} />
-        </div>
-      ))}
-      {extra > 0 && (
-        <div className="ring-2 ring-[#1e293b] rounded-md h-10 w-10 flex items-center justify-center bg-slate-800 border border-slate-700 text-xs text-slate-400">
-          +{extra}
-        </div>
-      )}
+    <div className="flex items-center gap-3 min-w-56">
+      <div className="flex items-center -space-x-2 flex-shrink-0">
+        {shown.map((item, i) => (
+          <div key={i} title={`${item.nom} × ${item.quantite}`} className="ring-2 ring-[#1e293b] rounded-md">
+            <Thumb src={item.image_url} alt={item.nom} />
+          </div>
+        ))}
+        {extra > 0 && (
+          <div className="ring-2 ring-[#1e293b] rounded-md h-10 w-10 flex items-center justify-center bg-slate-800 border border-slate-700 text-xs text-slate-400">
+            +{extra}
+          </div>
+        )}
+      </div>
+      <div className="min-w-0 space-y-1">
+        {shown.map((item, i) => (
+          <div key={`${item.nom}-${i}`} className="truncate text-slate-200" title={`${item.nom} × ${item.quantite}`}>
+            {item.nom} <span className="text-slate-500">× {item.quantite}</span>
+          </div>
+        ))}
+        {extra > 0 && <div className="text-xs text-slate-500">+ {extra} autre(s)</div>}
+      </div>
     </div>
   );
 }

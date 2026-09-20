@@ -3,7 +3,7 @@ import { AnimatedPage } from '../../components/layout/AnimatedPage';
 import { Button } from '../../components/ui/Button';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
+import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE, parseServices } from '../../lib/utils';
 import { api } from '@/lib/api';
 import PublicMenu from '../../components/restauration/PublicMenu';
 
@@ -60,16 +60,8 @@ export default function Restauration() {
   }, []);
 
 
-  // Force fallbackServices to display the rich text if DB items lack descriptions
-  let services = fallbackServices;
-  if (content?.services) {
-    try {
-      const parsed = JSON.parse(content.services);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].desc) {
-        services = parsed;
-      }
-    } catch(e) {}
-  }
+  const configuredServices = parseServices(content?.services);
+  const services = configuredServices.length > 0 ? configuredServices : fallbackServices;
 
   useEffect(() => {
     const ctx = gsap.context(() => {

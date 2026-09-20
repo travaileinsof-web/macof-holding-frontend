@@ -27,3 +27,22 @@ export const mergeContent = (fallback: any, fetched: any) => {
     }
     return merged;
 };
+
+export const parseServices = (value?: string) => {
+    if (!value) return [];
+    try {
+        const parsed = JSON.parse(value);
+        if (!Array.isArray(parsed)) return [];
+        return parsed.flatMap((item: any) => {
+            if (typeof item === 'string' && item.trim()) {
+                return [{ title: item, desc: item, icon: '' }];
+            }
+            if (item && typeof item.title === 'string') {
+                return [{ ...item, desc: typeof item.desc === 'string' ? item.desc : item.title }];
+            }
+            return [];
+        });
+    } catch {
+        return [];
+    }
+};

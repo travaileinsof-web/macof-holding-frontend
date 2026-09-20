@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { Mail, MapPin, Phone } from 'lucide-react';
+import { FaFacebookF, FaInstagram, FaLinkedinIn, FaTwitter } from 'react-icons/fa';
 import { useSettings } from '../../hooks/useSettings';
 import { getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
 
@@ -30,37 +32,42 @@ export function Footer() {
             <div className="space-y-3 text-sm font-sans">
               {settings.contact_phone && (
                 <a href={`tel:${settings.contact_phone.replace(/\s+/g, '')}`} className="flex items-center gap-3 text-white/70 hover:text-white transition-colors">
-                  <span className="w-8 h-8 rounded-full border border-[#0A4287]/50 flex items-center justify-center text-[#0A4287] text-xs">📞</span>
+                  <span className="w-8 h-8 rounded-full border border-[#0A4287]/50 flex items-center justify-center text-[#0A4287]"><Phone size={15} /></span>
                   {settings.contact_phone}
                 </a>
               )}
               {emails.map((email) => (
                 <a key={email} href={`mailto:${email}`} className="flex items-center gap-3 text-white/70 hover:text-white transition-colors">
-                  <span className="w-8 h-8 rounded-full border border-[#0A4287]/50 flex items-center justify-center text-[#0A4287] text-xs">✉</span>
+                  <span className="w-8 h-8 rounded-full border border-[#0A4287]/50 flex items-center justify-center text-[#0A4287]"><Mail size={15} /></span>
                   {email}
                 </a>
               ))}
               {settings.contact_address && (
                 <div className="flex items-start gap-3 text-white/70">
-                  <span className="w-8 h-8 rounded-full border border-[#0A4287]/50 flex items-center justify-center text-[#0A4287] text-xs flex-shrink-0">📍</span>
+                  <span className="w-8 h-8 rounded-full border border-[#0A4287]/50 flex items-center justify-center text-[#0A4287] flex-shrink-0"><MapPin size={15} /></span>
                   <span>{settings.contact_address}</span>
                 </div>
               )}
               
               <div className="flex gap-4 mt-6 pt-4">
                 {settings.social_linkedin && (
-                  <a href={settings.social_linkedin} target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-[#0A4287] transition-colors">
-                    LinkedIn
+                  <a href={settings.social_linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" className="text-white/50 hover:text-[#0A4287] transition-colors">
+                    <FaLinkedinIn size={18} />
                   </a>
                 )}
                 {settings.social_facebook && (
-                  <a href={settings.social_facebook} target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-[#0A4287] transition-colors">
-                    Facebook
+                  <a href={settings.social_facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook" className="text-white/50 hover:text-[#0A4287] transition-colors">
+                    <FaFacebookF size={18} />
+                  </a>
+                )}
+                {settings.social_instagram && (
+                  <a href={settings.social_instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram" className="text-white/50 hover:text-[#0A4287] transition-colors">
+                    <FaInstagram size={18} />
                   </a>
                 )}
                 {settings.social_twitter && (
-                  <a href={settings.social_twitter} target="_blank" rel="noopener noreferrer" className="text-white/50 hover:text-[#0A4287] transition-colors">
-                    Twitter
+                  <a href={settings.social_twitter} target="_blank" rel="noopener noreferrer" aria-label="Twitter" className="text-white/50 hover:text-[#0A4287] transition-colors">
+                    <FaTwitter size={18} />
                   </a>
                 )}
               </div>

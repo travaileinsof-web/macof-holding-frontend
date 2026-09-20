@@ -6,7 +6,7 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useQuery } from '@tanstack/react-query';
 import { MessageCircle, Ship, Plane, Truck, FileCheck, Globe2, Ticket } from 'lucide-react';
-import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
+import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE, parseServices } from '../../lib/utils';
 import { api } from '@/lib/api';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -94,16 +94,8 @@ export default function Transit() {
     }
   };
 
-  // Force fallbackServices to display the rich text if DB items lack descriptions
-  let services = fallbackServices;
-  if (content?.services) {
-    try {
-      const parsed = JSON.parse(content.services);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].desc) {
-        services = parsed;
-      }
-    } catch(e) {}
-  }
+  const configuredServices = parseServices(content?.services);
+  const services = configuredServices.length > 0 ? configuredServices : fallbackServices;
 
   useEffect(() => {
     const ctx = gsap.context(() => {

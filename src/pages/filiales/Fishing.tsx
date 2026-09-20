@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatedPage } from '../../components/layout/AnimatedPage';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
-import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE } from '../../lib/utils';
+import { mergeContent, getImageUrl, DEFAULT_FALLBACK_IMAGE, parseServices } from '../../lib/utils';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { MessageCircle } from 'lucide-react';
@@ -82,15 +82,8 @@ export default function Fishing() {
     }
   };
 
-  let services: any[] = fallbackServices;
-  if (content?.services) {
-    try {
-      const parsed = JSON.parse(content.services);
-      if (Array.isArray(parsed) && parsed.length > 0) services = parsed;
-    } catch {
-      services = fallbackServices;
-    }
-  }
+  const configuredServices = parseServices(content?.services);
+  const services = configuredServices.length > 0 ? configuredServices : fallbackServices;
 
   useEffect(() => {
     const ctx = gsap.context(() => {
